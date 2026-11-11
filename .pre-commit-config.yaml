@@ -53,8 +53,8 @@ repos:
         echo "========================================";
         echo "  BANNED: raw raise of builtin TimeoutError";
         echo "  Fix: raise LMCacheTimeoutError from";
-        echo "       lmcache.v1.common.timeouts so the timeout";
-        echo "       is reported to MP observability (OTel).";
+        echo "       lmcache.v1.common.timeouts; server code also";
+        echo "       reports it with mp_observability publish_timeout.";
         echo "========================================";
         echo "";
         echo "$matches";

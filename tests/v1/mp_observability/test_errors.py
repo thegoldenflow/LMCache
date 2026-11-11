@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
-"""Tests for LMCacheTimeoutError (observability-aware timeout error).
+"""Tests for LMCacheTimeoutError and publish_timeout.
 
-Verifies that the class is a drop-in ``TimeoutError`` subclass, is a no-op
-when observability is disabled, and otherwise publishes a ``TIMEOUT_RAISED``
-event to the global EventBus carrying the message, exception type, and a
-captured stack trace.
+Verifies that the class is a drop-in ``TimeoutError`` subclass, and that
+``publish_timeout`` is a no-op when observability is disabled and otherwise
+publishes a ``TIMEOUT_RAISED`` event to the global EventBus carrying the
+message, exception type, and a captured stack trace.
 """
 
 # Standard
@@ -19,6 +19,7 @@ import pytest
 
 # First Party
 from lmcache.v1.common.timeouts import LMCacheTimeoutError
+from lmcache.v1.mp_observability.errors import publish_timeout
 from lmcache.v1.mp_observability.event import Event, EventType
 from lmcache.v1.mp_observability.event_bus import (
     EventBusConfig,
@@ -61,7 +62,7 @@ class TestLMCacheTimeoutErrorEmission:
         format_stack = Mock(return_value=[])
         monkeypatch.setattr("traceback.format_stack", format_stack)
         bus.start()  # no-op when disabled
-        LMCacheTimeoutError("nope")
+        publish_timeout(LMCacheTimeoutError("nope"))
         time.sleep(_DRAIN_WAIT)
         bus.stop()
         assert captured == []
@@ -72,7 +73,7 @@ class TestLMCacheTimeoutErrorEmission:
         captured: list[Event] = []
         bus.subscribe(EventType.TIMEOUT_RAISED, captured.append)
         bus.start()
-        LMCacheTimeoutError("timed out!", session_id="req-7")
+        publish_timeout(LMCacheTimeoutError("timed out!", session_id="req-7"))
         time.sleep(_DRAIN_WAIT)
         bus.stop()
 
@@ -82,9 +83,9 @@ class TestLMCacheTimeoutErrorEmission:
         assert event.session_id == "req-7"
         assert event.metadata["message"] == "timed out!"
         assert event.metadata["exception_type"] == "LMCacheTimeoutError"
-        # The construction stack should be captured and end at the caller.
+        # The stack should be captured and end at the caller.
         assert "test_publishes_event_when_enabled" in event.metadata["stacktrace"]
-        assert "timeouts.py" not in event.metadata["stacktrace"]
+        assert "mp_observability/errors.py" not in event.metadata["stacktrace"]
 
     def test_subclass_reports_its_own_type(self) -> None:
         class MyTimeout(LMCacheTimeoutError):
@@ -94,7 +95,7 @@ class TestLMCacheTimeoutErrorEmission:
         captured: list[Event] = []
         bus.subscribe(EventType.TIMEOUT_RAISED, captured.append)
         bus.start()
-        MyTimeout("sub")
+        publish_timeout(MyTimeout("sub"))
         time.sleep(_DRAIN_WAIT)
         bus.stop()
 
@@ -111,7 +112,9 @@ class TestLMCacheTimeoutErrorEmission:
 
         monkeypatch.setattr(bus, "publish", broken_publish)
         with pytest.raises(LMCacheTimeoutError, match="still a timeout"):
-            raise LMCacheTimeoutError("still a timeout")
+            error = LMCacheTimeoutError("still a timeout")
+            publish_timeout(error)
+            raise error
 
 
 def test_timeout_error_does_not_load_mp_observability() -> None:
