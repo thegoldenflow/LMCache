@@ -28,6 +28,7 @@ from lmcache.v1.distributed.transfer_channel.abstract import (
 from lmcache.v1.distributed.transfer_channel.factory import (
     register_transfer_channel_factory,
 )
+from lmcache.v1.mp_observability.errors import publish_timeout
 
 if TYPE_CHECKING:
     # Third Party
@@ -574,12 +575,14 @@ class NixlTransferChannelContext(TransferChannelContext):
         try:
             return socket.recv()
         except zmq.Again as err:
-            raise LMCacheTimeoutError(
+            timeout_error = LMCacheTimeoutError(
                 f"Timed out after {_HANDSHAKE_TIMEOUT_MS / 1000:.0f}s waiting for "
                 f"a transfer-channel handshake reply from {server_url!r}. Check "
                 f"that the peer is running and that the url/port is correct and "
                 f"reachable."
-            ) from err
+            )
+            publish_timeout(timeout_error)
+            raise timeout_error from err
 
     def _connect(self, server_url: str) -> NixlTransferChannelClient:
         socket = self.zmq_context.socket(zmq.REQ)

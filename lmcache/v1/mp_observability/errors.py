@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
-"""Publishes a ``TIMEOUT_RAISED`` event for each new ``LMCacheTimeoutError``.
+"""Publishes a ``TIMEOUT_RAISED`` event for an ``LMCacheTimeoutError``.
 
-The error is defined in :mod:`lmcache.v1.common.timeouts`; ``init_event_bus``
-registers :func:`publish_timeout` as its observer.
+The error is defined in :mod:`lmcache.v1.common.timeouts` and reports nothing
+itself; server code calls :func:`publish_timeout` where it raises or catches one.
 """
 
 # Future
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 logger = init_logger(__name__)
 
 
-def publish_timeout(error: LMCacheTimeoutError, session_id: str) -> None:
+def publish_timeout(error: LMCacheTimeoutError) -> None:
     """Publish a ``TIMEOUT_RAISED`` event for ``error``.
 
     Skipped (no event, no stack capture) when observability is disabled. A
@@ -36,13 +36,12 @@ def publish_timeout(error: LMCacheTimeoutError, session_id: str) -> None:
     to capture the stack propagates.
 
     Args:
-        error: The timeout being constructed.
-        session_id: Request id of the timeout; empty when unavailable.
+        error: The timeout about to be raised, or just caught.
     """
     if not is_observability_enabled():
         return
-    # Stack at the raise site, minus this frame and __init__.
-    stacktrace = "".join(traceback.format_stack()[:-2])
+    # Stack at the caller, minus this frame.
+    stacktrace = "".join(traceback.format_stack()[:-1])
     try:
         get_event_bus().publish(
             Event(
@@ -53,7 +52,7 @@ def publish_timeout(error: LMCacheTimeoutError, session_id: str) -> None:
                     "exception_type": type(error).__name__,
                     "stacktrace": stacktrace,
                 },
-                session_id=session_id,
+                session_id=error.session_id,
             )
         )
     except Exception:

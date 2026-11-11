@@ -141,8 +141,8 @@ require a cross-cutting API change out of scope for this PR.
 
 ## Timeout Metrics
 
-Cross-component anomaly counter. Incremented once per `LMCacheTimeoutError`
-constructed (see `errors.py` and the `TIMEOUT_RAISED` event in
+Cross-component anomaly counter. Incremented once per `TIMEOUT_RAISED` event
+(published by `publish_timeout` in `errors.py`; see
 [EVENTS.md](EVENTS.md)), tagged by `exception_type` so operators can alert on
 the timeout rate per class.
 

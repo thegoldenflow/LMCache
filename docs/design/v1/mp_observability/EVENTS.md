@@ -150,12 +150,12 @@ needed when that happens.
 ## Timeout Events
 
 Cross-component health event. Published by `publish_timeout`
-(`lmcache/v1/mp_observability/errors.py`), which `init_event_bus()` registers
-as the `LMCacheTimeoutError` observer, every time the exception is
-constructed, gated by `is_observability_enabled()` so it is a no-op outside
-the MP server process. The `session_id` on the `Event` dataclass correlates
-the timeout with the originating request when the raise site has it; it is
-empty otherwise.
+(`lmcache/v1/mp_observability/errors.py`), which server code calls where it
+raises an `LMCacheTimeoutError` or catches one from a messaging future, gated
+by `is_observability_enabled()` so it is a no-op outside the MP server process.
+The `session_id` on the `Event` dataclass, taken from the error, correlates the
+timeout with the originating request when the raise site has it; it is empty
+otherwise.
 
 | EventType | Metadata keys | Types |
 |---|---|---|
@@ -163,9 +163,9 @@ empty otherwise.
 
 - `message` — the exception's message string (`str(exc)`).
 - `exception_type` — the class name (`LMCacheTimeoutError` or a subclass).
-- `stacktrace` — the formatted construction stack (`traceback.format_stack()`
-  minus the `__init__` frame), surfaced as the OTel `exception.stacktrace`
-  attribute by the tracing subscriber.
+- `stacktrace` — the formatted stack at the `publish_timeout` call
+  (`traceback.format_stack()` minus its own frame), surfaced as the OTel
+  `exception.stacktrace` attribute by the tracing subscriber.
 
 Consumed by `TimeoutMetricsSubscriber` (counter), `TimeoutLoggingSubscriber`
 (warning log), and `TimeoutTracingSubscriber` (OTel span with an `exception`

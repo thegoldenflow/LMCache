@@ -30,6 +30,7 @@ import zmq
 from lmcache.lmcache_native import Bitmap, PeriodicEventNotifier
 from lmcache.logging import init_logger
 from lmcache.v1.client.transport.factory import RequestClientFactory
+from lmcache.v1.common.timeouts import LMCacheTimeoutError
 from lmcache.v1.common.transfer_channel.api import TransferChannelAddress
 from lmcache.v1.distributed.api import (
     MemoryLayoutDesc,
@@ -47,6 +48,7 @@ from lmcache.v1.distributed.l2_adapters.config import (
 from lmcache.v1.distributed.l2_adapters.factory import register_l2_adapter_factory
 from lmcache.v1.distributed.transfer_channel import get_transfer_channel_context
 from lmcache.v1.memory_management import MemoryObj
+from lmcache.v1.mp_observability.errors import publish_timeout
 from lmcache.v1.multiprocess.transport.base import RequestClient
 from lmcache.v1.platform import HAS_EVENTFD, create_event_notifier
 
@@ -272,7 +274,10 @@ class PeerL2AdapterBase(L2AdapterInterface):
         remote_task_id = -1
         try:
             remote_task_id = future.result(timeout=_LOOKUP_RPC_TIMEOUT_S)
-        except TimeoutError:
+        except TimeoutError as err:
+            # The shared future raises it without reporting; report it here.
+            if isinstance(err, LMCacheTimeoutError):
+                publish_timeout(err)
             logger.warning(
                 "P2P lookup submit to %s timed out; treating as a miss",
                 self._config.peer_mq_server_url,
@@ -302,7 +307,9 @@ class PeerL2AdapterBase(L2AdapterInterface):
         future = self._req_client.p2p_query_lookup_results(task.remote_task_id)
         try:
             addresses = future.result(timeout=_LOOKUP_RPC_TIMEOUT_S)
-        except TimeoutError:
+        except TimeoutError as err:
+            if isinstance(err, LMCacheTimeoutError):
+                publish_timeout(err)
             return None
 
         if addresses is None:

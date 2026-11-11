@@ -106,7 +106,7 @@ class EventType(Enum):
     # vLLM end session events
     MP_VLLM_END_SESSION = "mp.vllm.end_session"
 
-    # Published by LMCacheTimeoutError on construction (see errors.py).
+    # Published by publish_timeout (see errors.py) for an LMCacheTimeoutError.
     # Metadata: message (str), exception_type (str), stacktrace (str, mapped
     # to the OTel exception.stacktrace span attribute).
     TIMEOUT_RAISED = "timeout.raised"
