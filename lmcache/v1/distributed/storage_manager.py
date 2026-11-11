@@ -84,6 +84,7 @@ from lmcache.v1.memory_allocators.devdax_memory_allocator import (
     DevDaxRemoveMode,
 )
 from lmcache.v1.memory_management import MemoryObj
+from lmcache.v1.mp_observability.errors import publish_timeout
 from lmcache.v1.mp_observability.event import Event, EventType
 from lmcache.v1.mp_observability.event_bus import get_event_bus
 from lmcache.v1.mp_observability.otel_init import register_gauge
@@ -1197,16 +1198,20 @@ class StorageManager:
                     adapter_id
                 )
                 if not store_done.wait(timeout=max(0.0, deadline - time.monotonic())):
-                    raise LMCacheTimeoutError(
+                    error = LMCacheTimeoutError(
                         f"Timed out draining adapter {adapter_id} from store controller"
                     )
+                    publish_timeout(error)
+                    raise error
                 if not prefetch_done.wait(
                     timeout=max(0.0, deadline - time.monotonic())
                 ):
-                    raise LMCacheTimeoutError(
+                    error = LMCacheTimeoutError(
                         f"Timed out draining adapter {adapter_id} from prefetch "
                         "controller"
                     )
+                    publish_timeout(error)
+                    raise error
                 self._l2_eviction_controller.remove_adapter_state(adapter_id)
                 # From here the adapter is detached: not active, but kept in
                 # the registry until its close succeeds.
