@@ -5,7 +5,7 @@
 from dataclasses import dataclass
 
 # Third Party
-import torch  # The gRPC codec resolves these annotations at runtime.
+import torch
 
 
 @dataclass(frozen=True)

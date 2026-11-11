@@ -33,7 +33,6 @@ import torch
 from lmcache.logging import init_logger
 from lmcache.utils import EngineType
 from lmcache.v1.common.memory_layout import MemoryLayoutDesc
-from lmcache.v1.common.sliding_window import recalculate_blocks_to_skip
 from lmcache.v1.gpu_connector.utils import LayoutHints
 from lmcache.v1.multiprocess.custom_types import IPCCacheServerKey
 from lmcache.v1.multiprocess.transport.base import RequestClient
@@ -639,6 +638,9 @@ def scatter_cpu_to_paged_kv(
             a positive multiple of the physical slots per block.
     """
     # First Party
+    from lmcache.v1.common.sliding_window import (
+        recalculate_blocks_to_skip,
+    )
     from lmcache.v1.gpu_connector.utils import (
         get_block_size,
         get_device,
