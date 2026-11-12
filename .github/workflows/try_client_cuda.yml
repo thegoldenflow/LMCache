@@ -1,0 +1,28 @@
+name: Try client CUDA
+
+# Temporary, fork only (#6315 (e)): call build_client_artifacts.yml the way
+# pr_full_build.yml does, with the caller's own concurrency group, next to an
+# unprefixed reusable workflow that GitHub should cancel as a deadlock.
+
+on:
+    push:
+        branches:
+            - try-client-cuda
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+jobs:
+    build-client:
+        name: Build client
+        uses: ./.github/workflows/build_client_artifacts.yml
+        with:
+            cuda: true
+
+    build-cpu-control:
+        name: Build CPU (unprefixed control)
+        uses: ./.github/workflows/build_cpu_artifacts.yml
