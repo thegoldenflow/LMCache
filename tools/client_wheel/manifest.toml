@@ -149,6 +149,10 @@ native_allow = ["lmcache.lmcache_native", "lmcache.cuda_ops"]
 # Imported, never shipped: ops of other device builds, external lmcache.inprocess.
 external_optional = ["lmcache.inprocess", "lmcache.musa_ops", "lmcache.xpu_ops"]
 
+# Undeclared third-party modules client imports still need, with the change
+# that removes each; the runtime check fails once one is no longer needed.
+runtime_gaps = { starlette = "#6573: lmcache/security/http.py imports Starlette" }
+
 # Legacy paths engines import at runtime; they may only re-export.
 [[compat_shims]]
 path = "lmcache/v1/multiprocess/__init__.py"

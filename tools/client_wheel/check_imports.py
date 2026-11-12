@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Static import closure of the lmcache-client wheel.
+"""Static and runtime import checks of the lmcache-client wheel.
 
     python tools/client_wheel/check_imports.py (--wheel WHEEL | --source-tree DIR)
         [--boundary strict|transitional] [--ratchet]
+    python tools/client_wheel/check_imports.py --wheel WHEEL --runtime PYTHON
+        [--only PACKAGE]
 
 Follows every lmcache import (top-level, lazy, typing, guarded) from the
 non-server modules of the wheel, or of what build.py would stage from DIR.
@@ -10,14 +12,26 @@ Fails on server files the boundary does not allow, lmcache modules the wheel
 lacks, and server_only_hooks imports missing from boundary_gaps. --ratchet
 applies strict rules to transitional content and passes only if the failing
 files are exactly the transitional list. Third-party imports are reported.
+
+--runtime imports each non-server module of the transitional WHEEL, installed
+in PYTHON's venv, in its own `python -I -B` process outside the checkout, then
+runs the smokes. Only engines that are not installed, external_optional and
+runtime_gaps may be missing. A meta-path hook records the server modules each
+import loads: under strict rules those imports fail, and the files they load
+must equal the transitional files static import-time edges reach. Exits 3 if
+the only problem is a stale runtime_gaps entry.
 """
 
 # Standard
 from collections import deque
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import argparse
 import ast
+import json
+import subprocess
 import sys
+import tempfile
 
 # Third Party
 from audit import GENERATED, load, matches, wheel_contents
@@ -41,6 +55,47 @@ DISTRIBUTIONS = {
     "zmq": "pyzmq",
 }
 ENGINES = {"sglang", "tensorrt-llm", "vllm"}
+# What engines and workers run beyond importing modules.
+SMOKES = {
+    "lmcache comes from lmcache-client": (
+        "import importlib.metadata as md, lmcache, pathlib\n"
+        "init = md.distribution('lmcache-client').locate_file('lmcache/__init__.py')\n"
+        "assert pathlib.Path(lmcache.__file__).samefile(init)"
+    ),
+    "ZMQ request client": (
+        "from lmcache.v1.client.transport.factory import RequestClientFactory\n"
+        "RequestClientFactory.create('tcp://127.0.0.1:1').close()"
+    ),
+    "gRPC request client": (
+        "from lmcache.v1.client.transport.factory import RequestClientFactory\n"
+        "RequestClientFactory.create('grpc://127.0.0.1:1').close()"
+    ),
+    "vLLM connector import": (
+        "from lmcache.v1.multiprocess.custom_types import BlockAllocationRecord"
+    ),
+    "ATOM worker import": (
+        "from lmcache.v1.multiprocess.group_view import EngineGroupInfo"
+    ),
+}
+# Runs in the venv under test; records the server modules the code loads.
+PROBE = """
+import importlib.abc, importlib.util, json, sys
+server, hits = set(json.loads(sys.argv[1])), []
+class Hook(importlib.abc.MetaPathFinder):
+    def find_spec(self, name, path=None, target=None):
+        if name in server and name not in hits:
+            hits.append(name)
+sys.meta_path.insert(0, Hook())
+error = None
+try:
+    exec(sys.argv[2], {})
+except BaseException as exc:
+    name = (exc.name or "") if isinstance(exc, ImportError) else ""
+    top = name.partition(".")[0]
+    installed = bool(top) and importlib.util.find_spec(top) is not None
+    error = [type(exc).__name__, name, installed, str(exc)[:300]]
+print("\\nRESULT", json.dumps({"hits": hits, "error": error}))
+"""
 
 
 class Imports(ast.NodeVisitor):
@@ -95,6 +150,21 @@ class Imports(ast.NodeVisitor):
         self.generic_visit(node)
 
 
+class ImportTime(Imports):
+    """Only the imports that run when the module itself is imported."""
+
+    def visit_FunctionDef(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        pass
+
+    visit_AsyncFunctionDef = visit_FunctionDef
+
+    def visit_If(self, node: ast.If) -> None:
+        test = getattr(node.test, "id", getattr(node.test, "attr", ""))
+        self.nested(
+            "", node.orelse if test == "TYPE_CHECKING" else node.body + node.orelse
+        )
+
+
 def module_of(path: str) -> str:
     parts = path.split(".")[0].split("/")
     return ".".join(parts[:-1] if parts[-1] == "__init__" else parts)
@@ -128,7 +198,13 @@ def source_files(root: Path, manifest: dict, transitional: bool) -> dict[str, by
     return files
 
 
-def walk(files: dict, manifest: dict, strict: bool, checkout: bool) -> dict:
+def walk(
+    files: dict,
+    manifest: dict,
+    strict: bool,
+    checkout: bool,
+    scanner: type[Imports] = Imports,
+) -> dict:
     shims = [shim["path"] for shim in manifest["compat_shims"]]
     transitional = {p for group in manifest["transitional"] for p in group["paths"]}
     hooks = manifest["server_only_hooks"]
@@ -152,7 +228,7 @@ def walk(files: dict, manifest: dict, strict: bool, checkout: bool) -> dict:
     imports = {}
     for module, path in python.items():
         package = module if path.endswith("__init__.py") else module.rpartition(".")[0]
-        visitor = Imports(package)
+        visitor = scanner(package)
         visitor.visit(ast.parse(files[path], path))
         imports[module] = visitor.found
 
@@ -229,6 +305,93 @@ def third_party(used: dict[str, list[str]]) -> list[str]:
     return lines + [f"  declared, never imported: {unused}"]
 
 
+def probe(python: str, cwd: str, server: list[str], code: str) -> dict:
+    proc = subprocess.run(
+        [python, "-I", "-B", "-c", PROBE, json.dumps(server), code],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        timeout=600,
+    )
+    found = [line for line in proc.stdout.splitlines() if line.startswith("RESULT ")]
+    if found:
+        return json.loads(found[-1].removeprefix("RESULT "))
+    return {"hits": [], "error": ["crashed", "", False, proc.stderr[-300:]]}
+
+
+def outcome(error: list | None, manifest: dict) -> tuple[str, str]:
+    """ok, engine, optional, gap (a runtime_gaps entry) or FAIL, with detail."""
+    if not error:
+        return "ok", ""
+    kind, name, installed, message = error
+    top = name.partition(".")[0]
+    outside = manifest["native_allow"] + manifest["external_optional"]
+    if kind == "ModuleNotFoundError" and top == "lmcache":
+        if any(name == o or name.startswith(o + ".") for o in outside):
+            return "optional", name
+    elif kind == "ModuleNotFoundError" and top and not installed:
+        if distribution(top) in ENGINES:
+            return "engine", top
+        if top in manifest["runtime_gaps"]:
+            return "gap", top
+    return "FAIL", f"{kind}: {message}"
+
+
+def runtime(python: str, wheel: Path, manifest: dict, only: str | None) -> int:
+    files = wheel_contents(wheel)[1]
+    shims = [shim["path"] for shim in manifest["compat_shims"]]
+    deny = manifest["deny"] + manifest["server_only_hooks"]
+    code = [p for p in files if p.endswith(".py")]
+    server = {module_of(p): p for p in code if matches(p, deny) and p not in shims}
+    modules = sorted(module_of(p) for p in code if module_of(p) not in server)
+    if only:
+        modules = [m for m in modules if m == only or m.startswith(only + ".")]
+    jobs = {m: f"import {m}" for m in modules}
+    jobs.update({} if only else {f"smoke: {k}": v for k, v in SMOKES.items()})
+    names = sorted(server)
+    with tempfile.TemporaryDirectory() as cwd, ThreadPoolExecutor(8) as pool:
+        done = pool.map(lambda c: probe(python, cwd, names, c), jobs.values())
+        results = dict(zip(jobs, done, strict=False))
+
+    gaps = manifest["runtime_gaps"]
+    groups = manifest["transitional"]
+    owners = {path: group["owner"] for group in groups for path in group["paths"]}
+    outcomes = {job: outcome(r["error"], manifest) for job, r in results.items()}
+    print(f"{len(modules)} modules and {len(jobs) - len(modules)} smokes in {python}")
+    print("transitional boundary, imports that did not succeed:")
+    for job, (kind, detail) in sorted(outcomes.items(), key=lambda i: i[1]):
+        if kind == "FAIL":
+            print(f"FAIL {job}: {detail}")
+        elif kind == "gap":
+            print(f"  runtime_gaps {detail} ({gaps[detail]}): {job}")
+        elif kind != "ok":
+            print(f"  {kind} {detail} not installed: {job}")
+    failed = any(kind == "FAIL" for kind, _ in outcomes.values())
+    if only:
+        return int(failed)
+
+    print("strict boundary (each import below loads transitional files):")
+    for job, result in sorted(results.items()):
+        if result["hits"]:
+            needs = {owners.get(server[m], server[m]) for m in result["hits"]}
+            print(f"  {job}: {', '.join(sorted(needs))}")
+    loaded = {server[m] for result in results.values() for m in result["hits"]}
+    reach = walk(files, manifest, True, False, ImportTime)["failures"]
+    static = {p for p, f in reach.items() if f["reason"] == "server file"}
+    for path in sorted(loaded & static):
+        print(f"  loaded {path} ({owners.get(path, 'not transitional')})")
+    for path in sorted(loaded ^ static):
+        side = "only at runtime" if path in loaded else "only by static edges"
+        print(f"FAIL server file loaded {side}: {path}")
+    same = loaded == static
+    print(f"loaded == static import-time reach ({len(static)} files): {same}")
+    needed = {detail for kind, detail in outcomes.values() if kind == "gap"}
+    stale = sorted(gaps.keys() - needed)
+    for name in stale:
+        print(f"stale runtime_gaps entry: {name}")
+    return 1 if failed or not same else 3 if stale else 0
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -240,9 +403,15 @@ def main() -> None:
         "--boundary", choices=("strict", "transitional"), default="strict"
     )
     parser.add_argument("--ratchet", action="store_true")
+    parser.add_argument("--runtime", metavar="PYTHON")
+    parser.add_argument("--only", metavar="PACKAGE", help="with --runtime")
     args = parser.parse_args()
 
     manifest = load("manifest.toml")
+    if args.runtime:
+        if not args.wheel:
+            parser.error("--runtime needs --wheel")
+        sys.exit(runtime(args.runtime, args.wheel, manifest, args.only))
     listed = {p for group in manifest["transitional"] for p in group["paths"]}
     strict = args.ratchet or args.boundary == "strict"
     if args.wheel:
