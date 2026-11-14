@@ -1,0 +1,18 @@
+WARNING: Skipping lmcache as it is not installed.
+WARNING: Skipping lmcache-client as it is not installed.
+WARNING: Skipping lmcache-cli as it is not installed.
+WARNING: Skipping lmcache as it is not installed.
+WARNING: Skipping lmcache-cli as it is not installed.
+WARNING: Skipping lmcache-client as it is not installed.
+WARNING: Skipping lmcache-cli as it is not installed.
+WARNING: Skipping lmcache as it is not installed.
+WARNING: Skipping lmcache-cli as it is not installed.
+WARNING: Skipping lmcache as it is not installed.
+WARNING: Skipping lmcache-client as it is not installed.
+lmcache-client: 528 files under lmcache/, owners ['lmcache-client']
+lmcache: 1484 files under lmcache/, owners ['lmcache']
+lmcache-client: 528 files under lmcache/, owners ['lmcache-client']
+lmcache-cli: 1406 files under lmcache/, owners ['lmcache-cli']
+lmcache-client: 528 files under lmcache/, owners ['lmcache-client']
+full installed over client without uninstalling: owners ['lmcache', 'lmcache-client']
+0 failure(s)

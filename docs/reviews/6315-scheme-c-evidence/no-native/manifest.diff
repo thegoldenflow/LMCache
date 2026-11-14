@@ -1,0 +1,11 @@
+--- manifest.toml
++++ no-native.toml
+@@ -79,7 +79,7 @@
+ ]
+ 
+ # Native extensions setup.py may put in the wheel.
+-native_allow = ["lmcache.lmcache_native", "lmcache.cuda_ops"]
++native_allow = ["lmcache.cuda_ops"]
+ 
+ # Imported, never shipped: ops of other device builds, external lmcache.inprocess.
+ external_optional = ["lmcache.inprocess", "lmcache.musa_ops", "lmcache.xpu_ops"]

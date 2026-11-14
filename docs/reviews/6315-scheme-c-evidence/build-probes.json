@@ -1,0 +1,69 @@
+[
+  {
+    "name": "exclude-shim",
+    "build_exit": 0,
+    "audit_exit": 0,
+    "audit_errors": [
+      "0 failure(s)"
+    ],
+    "overlap_shipped": {
+      "lmcache/v1/multiprocess/group_view.py": true,
+      "lmcache/v1/transport/grpc/_proto_gen/common_pb2.pyi": true
+    }
+  },
+  {
+    "name": "exclude-generated-pyi",
+    "build_exit": 0,
+    "audit_exit": 0,
+    "audit_errors": [
+      "0 failure(s)"
+    ],
+    "overlap_shipped": {
+      "lmcache/v1/multiprocess/group_view.py": true,
+      "lmcache/v1/transport/grpc/_proto_gen/common_pb2.pyi": true
+    }
+  },
+  {
+    "name": "no-grpc",
+    "build_exit": 1,
+    "last_lines": [
+      "adding license file 'LICENSE'",
+      "writing manifest file 'lmcache_client.egg-info/SOURCES.txt'",
+      "running bdist_wheel",
+      "running build",
+      "running build_py",
+      "",
+      "* Getting build dependencies for wheel...",
+      "* Building wheel...",
+      "error: [Errno 2] No such file or directory: '/tmp/lmcache-client-s2vxp78u/lmcache/v1/transport/grpc/_proto_gen/_generate.py'",
+      "TIP pass --env-dir and --sdist-extract-dir to keep the build environment and sources, then see https://build.pypa.io/en/stable/how-to/troubleshooting.html#debug-a-failed-build for help debugging a failed build",
+      "ERROR Backend subprocess exited when trying to invoke build_wheel",
+      "python -m build failed in the staging root"
+    ]
+  },
+  {
+    "name": "json-data",
+    "build_exit": 0,
+    "audit_exit": 1,
+    "audit_errors": [
+      "FAIL files: staged but not shipped: lmcache/lmcache_frontend/config.json",
+      "1 failure(s)"
+    ],
+    "overlap_shipped": {
+      "lmcache/v1/multiprocess/group_view.py": true,
+      "lmcache/v1/transport/grpc/_proto_gen/common_pb2.pyi": true
+    }
+  },
+  {
+    "name": "no-native",
+    "build_exit": 0,
+    "audit_exit": 0,
+    "audit_errors": [
+      "0 failure(s)"
+    ],
+    "overlap_shipped": {
+      "lmcache/v1/multiprocess/group_view.py": true,
+      "lmcache/v1/transport/grpc/_proto_gen/common_pb2.pyi": true
+    }
+  }
+]

@@ -1,0 +1,117 @@
+295 modules, strict
+boundary_gaps: 7
+  lmcache/v1/platform/base/device_spec.py:41 (typing) -> lmcache/v1/platform/base/cache_context.py
+  lmcache/v1/platform/devices/cuda/__init__.py:18 (typing) -> lmcache/v1/platform/base/cache_context.py
+  lmcache/v1/platform/devices/cuda/__init__.py:167 (lazy) -> lmcache/v1/platform/devices/cuda/cache_context.py
+  lmcache/v1/platform/devices/musa/__init__.py:18 (typing) -> lmcache/v1/platform/base/cache_context.py
+  lmcache/v1/platform/devices/musa/__init__.py:96 (lazy) -> lmcache/v1/platform/devices/musa/cache_context.py
+  lmcache/v1/platform/devices/npu/__init__.py:28 (typing) -> lmcache/v1/platform/base/cache_context.py
+  lmcache/v1/platform/devices/npu/__init__.py:89 (lazy) -> lmcache/v1/platform/devices/npu/cache_context.py
+transitional files reached: 64/64
+third-party imports:
+  undeclared acl (guarded): lmcache/v1/platform/devices/npu/device_ops.py:47
+  undeclared grpcio-observability (guarded): lmcache/v1/mp_observability/otel_init.py:321
+  undeclared grpcio-tools (lazy): lmcache/v1/transport/grpc/_proto_gen/_generate.py:145
+  undeclared lmcache-ascend (guarded): lmcache/v1/platform/devices/npu/device_ops.py:76
+  undeclared musa-aiter (guarded): lmcache/v1/platform/devices/musa/native_kv_transfer.py:50
+  undeclared opentelemetry-exporter-otlp (lazy): lmcache/v1/mp_observability/otel_init.py:110
+  undeclared opentelemetry-exporter-prometheus (lazy): lmcache/v1/mp_observability/otel_init.py:135
+  undeclared opentelemetry-sdk (guarded, lazy, typing): lmcache/logging.py:87
+  undeclared starlette (top): lmcache/security/http.py:8
+  undeclared torch-br (guarded): lmcache/v1/platform/devices/supa/__init__.py:82
+  undeclared torch-mlu (guarded): lmcache/v1/platform/devices/mlu/__init__.py:55
+  undeclared torch-musa (guarded): lmcache/v1/platform/devices/musa/device_ops.py:368
+  undeclared torch-xla (guarded): lmcache/v1/platform/devices/neuron/__init__.py:114
+  undeclared transformers (lazy): lmcache/integration/tensorrt_llm/tensorrt_mp_adapter.py:331
+  undeclared triton (top): lmcache/v1/distributed/serde/turboquant/store_kernel.py:18
+  engines: sglang, tensorrt-llm, vllm
+  declared, never imported: none
+shipped, imported by no other module: 23
+  lmcache/cli/__init__.py
+  lmcache/cli/metrics/__init__.py
+  lmcache/integration/atom/__init__.py
+  lmcache/integration/request_telemetry/fastapi.py
+  lmcache/integration/request_telemetry/noop.py
+  lmcache/integration/sglang/unified_lmcache_mp_connector.py
+  lmcache/integration/tensorrt_llm/__init__.py
+  lmcache/integration/tensorrt_llm/tensorrt_adapter.py
+  lmcache/integration/vllm/experimental/token_drop.py
+  lmcache/integration/vllm/experimental/token_drop_adapter.py
+  lmcache/integration/vllm/experimental/token_drop_kv.py
+  lmcache/integration/vllm/lmcache_mp_connector.py
+  lmcache/v1/common/token_hasher.py
+  lmcache/v1/multiprocess/group_view.py
+  lmcache/v1/platform/devices/cpu/device_ops.py
+  lmcache/v1/platform/devices/cpu/shm.py
+  lmcache/v1/platform/devices/hpu/__init__.py
+  lmcache/v1/platform/devices/mlu/__init__.py
+  lmcache/v1/platform/devices/npu/__init__.py
+  lmcache/v1/platform/devices/rocm/__init__.py
+  lmcache/v1/platform/devices/supa/__init__.py
+  lmcache/v1/platform/devices/xpu/__init__.py
+  lmcache/v1/transport/grpc/protos/__init__.py
+FAIL server file: lmcache/v1/distributed/api.py  <- lmcache/v1/client/transfer_context/base.py:37 (top)
+FAIL server file: lmcache/v1/distributed/bitmap_ops/__init__.py  <- lmcache/v1/distributed/storage_controllers/prefetch_policy.py:28 (top)
+FAIL server file: lmcache/v1/distributed/bitmap_ops/fold.py  <- lmcache/v1/distributed/storage_controllers/prefetch_policy.py:28 (top)
+FAIL server file: lmcache/v1/distributed/config.py  <- lmcache/v1/gpu_connector/gds_context.py:27 (top)
+FAIL server file: lmcache/v1/distributed/error.py  <- lmcache/v1/distributed/internal_api.py:19 (top)
+FAIL server file: lmcache/v1/distributed/eviction.py  <- lmcache/v1/distributed/storage_controllers/eviction_controller.py:17 (top)
+FAIL server file: lmcache/v1/distributed/eviction_policy/__init__.py  <- lmcache/v1/distributed/storage_controllers/eviction_controller.py:18 (top)
+FAIL server file: lmcache/v1/distributed/eviction_policy/arc.py  <- lmcache/v1/distributed/eviction_policy/__init__.py:7 (top)
+FAIL server file: lmcache/v1/distributed/eviction_policy/factory.py  <- lmcache/v1/distributed/eviction_policy/__init__.py:10 (top)
+FAIL server file: lmcache/v1/distributed/eviction_policy/isolated_lru.py  <- lmcache/v1/distributed/eviction_policy/__init__.py:13 (top)
+FAIL server file: lmcache/v1/distributed/eviction_policy/lru.py  <- lmcache/v1/distributed/eviction_policy/__init__.py:16 (top)
+FAIL server file: lmcache/v1/distributed/eviction_policy/noop.py  <- lmcache/v1/distributed/eviction_policy/__init__.py:19 (top)
+FAIL server file: lmcache/v1/distributed/internal_api.py  <- lmcache/v1/distributed/l2_adapters/__init__.py:16 (top)
+FAIL server file: lmcache/v1/distributed/key_codec.py  <- lmcache/v1/mp_coordinator/utils/encoding.py:14 (top)
+FAIL server file: lmcache/v1/distributed/l2_adapters/__init__.py  <- lmcache/v1/distributed/config.py:19 (top)
+FAIL server file: lmcache/v1/distributed/l2_adapters/base.py  <- lmcache/v1/distributed/l2_adapters/__init__.py:17 (top)
+FAIL server file: lmcache/v1/distributed/l2_adapters/config.py  <- lmcache/v1/distributed/config.py:19 (top)
+FAIL server file: lmcache/v1/distributed/l2_adapters/factory.py  <- lmcache/v1/distributed/l2_adapters/__init__.py:23 (top)
+FAIL server file: lmcache/v1/distributed/serde/__init__.py  <- lmcache/v1/distributed/l2_adapters/config.py:30 (top)
+FAIL server file: lmcache/v1/distributed/serde/aesgcm.py  <- lmcache/v1/distributed/serde/__init__.py:3 (top)
+FAIL server file: lmcache/v1/distributed/serde/async_processor.py  <- lmcache/v1/distributed/serde/__init__.py:7 (top)
+FAIL server file: lmcache/v1/distributed/serde/base.py  <- lmcache/v1/distributed/serde/__init__.py:8 (top)
+FAIL server file: lmcache/v1/distributed/serde/factory.py  <- lmcache/v1/distributed/serde/__init__.py:15 (top)
+FAIL server file: lmcache/v1/distributed/serde/fp8.py  <- lmcache/v1/distributed/serde/__init__.py:20 (top)
+FAIL server file: lmcache/v1/distributed/serde/key_provider.py  <- lmcache/v1/distributed/serde/__init__.py:24 (top)
+FAIL server file: lmcache/v1/distributed/serde/multi.py  <- lmcache/v1/distributed/serde/__init__.py:28 (top)
+FAIL server file: lmcache/v1/distributed/serde/turboquant/__init__.py  <- lmcache/v1/distributed/serde/__init__.py:37 (top)
+FAIL server file: lmcache/v1/distributed/serde/turboquant/decode_kernel.py  <- lmcache/v1/distributed/serde/turboquant/turboquant.py:771 (lazy)
+FAIL server file: lmcache/v1/distributed/serde/turboquant/store_kernel.py  <- lmcache/v1/distributed/serde/turboquant/turboquant.py:614 (lazy)
+FAIL server file: lmcache/v1/distributed/serde/turboquant/turboquant.py  <- lmcache/v1/distributed/serde/turboquant/__init__.py:5 (top)
+FAIL server file: lmcache/v1/distributed/serde/utils.py  <- lmcache/v1/distributed/serde/__init__.py:42 (top)
+FAIL server file: lmcache/v1/distributed/storage_controller.py  <- lmcache/v1/distributed/storage_controllers/eviction_controller.py:25 (top)
+FAIL server file: lmcache/v1/distributed/storage_controllers/__init__.py  <- lmcache/v1/distributed/config.py:1012 (lazy)
+FAIL server file: lmcache/v1/distributed/storage_controllers/adapter_lifecycle.py  <- lmcache/v1/distributed/storage_controllers/prefetch_controller.py:49 (top)
+FAIL server file: lmcache/v1/distributed/storage_controllers/eviction_controller.py  <- lmcache/v1/distributed/storage_controllers/__init__.py:16 (top)
+FAIL server file: lmcache/v1/distributed/storage_controllers/prefetch_controller.py  <- lmcache/v1/distributed/storage_controllers/__init__.py:22 (top)
+FAIL server file: lmcache/v1/distributed/storage_controllers/prefetch_policy.py  <- lmcache/v1/distributed/config.py:1012 (lazy)
+FAIL server file: lmcache/v1/distributed/storage_controllers/store_controller.py  <- lmcache/v1/distributed/storage_controllers/__init__.py:25 (top)
+FAIL server file: lmcache/v1/distributed/storage_controllers/store_policy.py  <- lmcache/v1/distributed/config.py:1015 (lazy)
+FAIL server file: lmcache/v1/distributed/storage_controllers/utils.py  <- lmcache/v1/distributed/storage_controllers/prefetch_policy.py:29 (top)
+FAIL server file: lmcache/v1/gpu_connector/__init__.py  <- lmcache/v1/multiprocess/object_group_transfer.py:29 (top)
+FAIL server file: lmcache/v1/gpu_connector/_gds_backends.py  <- lmcache/v1/gpu_connector/gds_context.py:28 (top)
+FAIL server file: lmcache/v1/gpu_connector/gds_backends/__init__.py  <- lmcache/v1/gpu_connector/gds_context.py:29 (top)
+FAIL server file: lmcache/v1/gpu_connector/gds_backends/_driver.py  <- lmcache/v1/gpu_connector/gds_backends/base.py:14 (top)
+FAIL server file: lmcache/v1/gpu_connector/gds_backends/base.py  <- lmcache/v1/gpu_connector/gds_context.py:29 (top)
+FAIL server file: lmcache/v1/gpu_connector/gds_context.py  <- lmcache/v1/gpu_connector/gpu_ops.py:10 (top)
+FAIL server file: lmcache/v1/gpu_connector/gpu_ops.py  <- lmcache/v1/multiprocess/object_group_transfer.py:29 (top)
+FAIL server file: lmcache/v1/memory_allocators/__init__.py  <- lmcache/v1/multiprocess/object_group_transfer.py:34 (top)
+FAIL server file: lmcache/v1/memory_allocators/lazy_memory_allocator.py  <- lmcache/v1/multiprocess/object_group_transfer.py:34 (top)
+FAIL server file: lmcache/v1/memory_allocators/tensor_memory_allocator.py  <- lmcache/v1/memory_allocators/lazy_memory_allocator.py:14 (top)
+FAIL server file: lmcache/v1/mp_coordinator/__init__.py  <- lmcache/v1/distributed/eviction.py:18 (top)
+FAIL server file: lmcache/v1/mp_coordinator/persistence/__init__.py  <- lmcache/v1/distributed/eviction.py:18 (top)
+FAIL server file: lmcache/v1/mp_coordinator/persistence/durable_component.py  <- lmcache/v1/distributed/eviction.py:18 (top)
+FAIL server file: lmcache/v1/mp_coordinator/utils/__init__.py  <- lmcache/v1/distributed/eviction_policy/isolated_lru.py:33 (top)
+FAIL server file: lmcache/v1/mp_coordinator/utils/encoding.py  <- lmcache/v1/distributed/eviction_policy/isolated_lru.py:33 (top)
+FAIL server file: lmcache/v1/multiprocess/affinity_pool.py  <- lmcache/v1/multiprocess/transport/zmq_impl/mq.py:19 (top)
+FAIL server file: lmcache/v1/multiprocess/custom_types.py  <- lmcache/v1/multiprocess/transport/zmq_impl/mq.py:20 (top)
+FAIL server file: lmcache/v1/multiprocess/object_group_transfer.py  <- lmcache/v1/client/transfer_context/base.py:654 (lazy)
+FAIL server file: lmcache/v1/multiprocess/request_handler.py  <- lmcache/v1/multiprocess/transport/zmq_impl/mq.py:24 (top)
+FAIL server file: lmcache/v1/multiprocess/transport/__init__.py  <- lmcache/integration/atom/multi_process_adapter.py:31 (top)
+FAIL server file: lmcache/v1/multiprocess/transport/base.py  <- lmcache/integration/atom/multi_process_adapter.py:31 (top)
+FAIL server file: lmcache/v1/multiprocess/transport/zmq_impl/__init__.py  <- lmcache/v1/client/transport/zmq_impl/mq_client.py:22 (top)
+FAIL server file: lmcache/v1/multiprocess/transport/zmq_impl/mq.py  <- lmcache/v1/client/transport/zmq_impl/mq_client.py:22 (top)
+FAIL server file: lmcache/v1/platform/base/cache_context.py  <- lmcache/v1/multiprocess/object_group_transfer.py:41 (top)
+ratchet: strict failures == transitional: True

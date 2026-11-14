@@ -1,0 +1,14 @@
+[
+  {
+    "wheel": "baseline/transitional",
+    "exit": 0,
+    "output": "CPU_SPEC CpuDeviceSpec\n",
+    "stderr": "\u001b[32;20m[2026-11-14 00:11:47,374] LMCache INFO:\u001b[0m torch_dev=StubCPUDevice(device_type=cpu), torch_device_type=cpu \u001b[3m(_device_detect.py:311:lmcache.v1.platform._device_detect)\u001b[0m\n"
+  },
+  {
+    "wheel": "exclude-device-cpu/dist",
+    "exit": 0,
+    "output": "CPU_SPEC None\n",
+    "stderr": "\u001b[32;20m[2026-11-14 00:11:49,327] LMCache INFO:\u001b[0m torch_dev=StubCPUDevice(device_type=cpu), torch_device_type=cpu \u001b[3m(_device_detect.py:311:lmcache.v1.platform._device_detect)\u001b[0m\n"
+  }
+]

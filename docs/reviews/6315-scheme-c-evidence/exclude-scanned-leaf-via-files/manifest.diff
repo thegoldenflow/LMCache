@@ -1,0 +1,19 @@
+--- manifest.toml
++++ exclude-scanned-leaf-via-files.toml
+@@ -45,7 +45,6 @@
+     "lmcache/cli/metrics/",
+     # Engine integrations
+     "lmcache/integration/__init__.py",
+-    "lmcache/integration/atom/",
+     "lmcache/integration/request_telemetry/",
+     "lmcache/integration/sglang/",
+     "lmcache/integration/tensorrt_llm/",
+@@ -269,3 +268,8 @@
+ "for cupy.testing under torch._dynamo; not yet checked for the [cuda] extra" = [
+     "pytest",
+ ]
++
++[[exclude]]
++owner = "adversarial-review"
++reason = "counterexample"
++paths = ["lmcache/v1/common/kv_format/detectors/atom.py"]

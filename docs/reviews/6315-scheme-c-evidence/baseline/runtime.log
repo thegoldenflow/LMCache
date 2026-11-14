@@ -1,0 +1,64 @@
+253 modules and 6 smokes in $WORK/venv-client/bin/python
+transitional boundary, imports that did not succeed:
+  engine sglang not installed: lmcache.integration.sglang.unified_kv_adapter
+  engine tensorrt_llm not installed: lmcache.integration.tensorrt_llm.tensorrt_mp_adapter
+  engine vllm not installed: lmcache.integration.vllm.kv_cache_group_edits
+  engine vllm not installed: lmcache.integration.vllm.lazy_offload_manager
+  engine vllm not installed: lmcache.integration.vllm.lmcache_mp_connector
+  engine vllm not installed: lmcache.integration.vllm.lmcache_mp_metadata
+  engine vllm not installed: lmcache.integration.vllm.lmcache_mp_metrics
+  runtime_gaps starlette (#6573: lmcache/security/http.py imports Starlette): lmcache.security.http
+  runtime_gaps starlette (#6573: lmcache/security/http.py imports Starlette): lmcache.v1.client.transport.grpc_impl.auth
+  runtime_gaps starlette (#6573: lmcache/security/http.py imports Starlette): lmcache.v1.client.transport.grpc_impl.client
+  runtime_gaps starlette (#6573: lmcache/security/http.py imports Starlette): lmcache.v1.transport.auth
+  runtime_gaps starlette (#6573: lmcache/security/http.py imports Starlette): smoke: ZMQ request client
+  runtime_gaps starlette (#6573: lmcache/security/http.py imports Starlette): smoke: gRPC request client
+  optional lmcache.inprocess not installed: lmcache.integration.tensorrt_llm.tensorrt_adapter
+strict boundary (each import below loads transitional files):
+  lmcache.integration.atom: #6307 (#6509, #6481), #6308
+  lmcache.integration.atom.multi_process_adapter: #6307 (#6509, #6481), #6308
+  lmcache.integration.sglang.unified_lmcache_mp_connector: #6307 (#6509, #6481), #6308
+  lmcache.integration.vllm.experimental: #6307 (#6509, #6481), #6308
+  lmcache.integration.vllm.experimental.dispatcher: #6307 (#6509, #6481), #6308
+  lmcache.integration.vllm.experimental.token_drop: #6307 (#6509, #6481), #6308
+  lmcache.integration.vllm.experimental.token_drop_adapter: #6307 (#6509, #6481), #6308
+  lmcache.integration.vllm.experimental.token_drop_kv: #6307 (#6509, #6481), #6308
+  lmcache.integration.vllm.experimental.token_drop_scheduler: #6307 (#6509, #6481), #6308
+  lmcache.integration.vllm.mp_lookup_state: #6307 (#6509, #6481), #6308
+  lmcache.integration.vllm.vllm_multi_process_adapter: #6307 (#6509, #6481), #6308
+  lmcache.sdk: #6307 (#6509, #6481), #6308
+  lmcache.sdk.batch: #6307 (#6509, #6481), #6308
+  lmcache.sdk.cache_kind: #6307 (#6509, #6481), #6308
+  lmcache.sdk.context: #6307 (#6509, #6481), #6308
+  lmcache.sdk.kvcache: #6307 (#6509, #6481), #6308
+  lmcache.sdk.qcache: #6307 (#6509, #6481), #6308
+  lmcache.sdk.qringbuffer: #6307 (#6509, #6481), #6308
+  lmcache.sdk.request: #6307 (#6509, #6481), #6308
+  lmcache.sdk.wrapper: #6307 (#6509, #6481), #6308
+  lmcache.sdk.wrapper.ring_mapping: #6307 (#6509, #6481), #6308
+  lmcache.sdk.wrapper.ring_transfer: #6307 (#6509, #6481), #6308
+  lmcache.v1.client.async_engine_driven: #6307 (#6509, #6481), #6308
+  lmcache.v1.client.heartbeat: #6307 (#6509, #6481), #6308
+  lmcache.v1.client.kv_event_subscriber: #6307 (#6509, #6481), #6308
+  lmcache.v1.client.transfer_context: #6307 (#6509, #6481), #6308
+  lmcache.v1.client.transfer_context.base: #6307 (#6509, #6481), #6308
+  lmcache.v1.client.transfer_context.inline: #6307 (#6509, #6481), #6308
+  lmcache.v1.client.transfer_context.shm: #6307 (#6509, #6481), #6308
+  lmcache.v1.client.transfer_context.tensor_wire: #6307 (#6509, #6481), #6308
+  lmcache.v1.client.transport.factory: #6307 (#6509, #6481), #6308
+  lmcache.v1.client.transport.zmq_impl.client: #6307 (#6509, #6481), #6308, #6309, #6309 (#6541)
+  lmcache.v1.client.transport.zmq_impl.mq_client: #6307 (#6509, #6481), #6308, #6309, #6309 (#6541)
+  lmcache.v1.client.worker_transfer: #6307 (#6509, #6481), #6308
+  smoke: SDK import: #6307 (#6509, #6481), #6308
+  smoke: ZMQ request client: #6307 (#6509, #6481), #6308, #6309, #6309 (#6541)
+  smoke: gRPC request client: #6307 (#6509, #6481), #6308
+  smoke: vLLM connector import: #6309 (#6541)
+  loaded lmcache/v1/distributed/api.py (#6307 (#6509, #6481))
+  loaded lmcache/v1/multiprocess/affinity_pool.py (#6309)
+  loaded lmcache/v1/multiprocess/custom_types.py (#6309 (#6541))
+  loaded lmcache/v1/multiprocess/request_handler.py (#6309)
+  loaded lmcache/v1/multiprocess/transport/__init__.py (#6308)
+  loaded lmcache/v1/multiprocess/transport/base.py (#6308)
+  loaded lmcache/v1/multiprocess/transport/zmq_impl/__init__.py (#6309)
+  loaded lmcache/v1/multiprocess/transport/zmq_impl/mq.py (#6309)
+loaded == static import-time reach (8 files): True

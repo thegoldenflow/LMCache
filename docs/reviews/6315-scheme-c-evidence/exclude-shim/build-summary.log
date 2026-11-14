@@ -1,0 +1,8 @@
+staged 310 package files from dea67b3b4bb6; 0.0.0.dev0
+  transitional #6309 (#6541): 1 files
+  transitional #6308: 2 files
+  transitional #6309: 4 files
+  transitional #6307 (#6509, #6481): 1 files
+  transitional #6307 (#6509): 56 files
+Successfully built lmcache_client-0.0.0.dev0-cp312-cp312-linux_x86_64.whl
+wrote ../evidence/exclude-shim/native-dist/lmcache_client-0.0.0.dev0-cp312-cp312-linux_x86_64.whl

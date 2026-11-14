@@ -1,0 +1,6 @@
+{
+  "lmcache/v1/common/custom_types.py": false,
+  "lmcache/v1/transport/grpc/protos/common.proto": false,
+  "requirements/common.txt": false,
+  "tools/client_wheel/manifest.toml": true
+}

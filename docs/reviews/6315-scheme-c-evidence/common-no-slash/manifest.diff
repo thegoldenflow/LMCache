@@ -1,0 +1,11 @@
+--- manifest.toml
++++ common-no-slash.toml
+@@ -10,7 +10,7 @@
+ # Client-owned boundary packages and the platform vertical, included whole.
+ trees = [
+     "lmcache/v1/client/",
+-    "lmcache/v1/common/",
++    "lmcache/v1/common",
+     "lmcache/v1/platform/",
+     "lmcache/v1/transport/",
+ ]

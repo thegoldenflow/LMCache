@@ -1,0 +1,60 @@
+253 modules, strict
+boundary_gaps: 9
+  lmcache/v1/platform/base/device_spec.py:41 (typing) -> lmcache/v1/platform/base/cache_context.py
+  lmcache/v1/platform/devices/cpu/__init__.py:30 (typing) -> lmcache/v1/platform/base/cache_context.py
+  lmcache/v1/platform/devices/cpu/__init__.py:98 (lazy) -> lmcache/v1/platform/devices/cpu/cache_context.py
+  lmcache/v1/platform/devices/cuda/__init__.py:18 (typing) -> lmcache/v1/platform/base/cache_context.py
+  lmcache/v1/platform/devices/cuda/__init__.py:167 (lazy) -> lmcache/v1/platform/devices/cuda/cache_context.py
+  lmcache/v1/platform/devices/musa/__init__.py:18 (typing) -> lmcache/v1/platform/base/cache_context.py
+  lmcache/v1/platform/devices/musa/__init__.py:96 (lazy) -> lmcache/v1/platform/devices/musa/cache_context.py
+  lmcache/v1/platform/devices/npu/__init__.py:28 (typing) -> lmcache/v1/platform/base/cache_context.py
+  lmcache/v1/platform/devices/npu/__init__.py:89 (lazy) -> lmcache/v1/platform/devices/npu/cache_context.py
+transitional files reached: 0/64
+third-party imports:
+  undeclared acl (guarded): lmcache/v1/platform/devices/npu/device_ops.py:47
+  undeclared grpcio-observability (guarded): lmcache/v1/mp_observability/otel_init.py:321
+  undeclared grpcio-tools (lazy): lmcache/v1/transport/grpc/_proto_gen/_generate.py:145
+  undeclared lmcache-ascend (guarded): lmcache/v1/platform/devices/npu/device_ops.py:76
+  undeclared musa-aiter (guarded): lmcache/v1/platform/devices/musa/native_kv_transfer.py:50
+  undeclared opentelemetry-exporter-otlp (lazy): lmcache/v1/mp_observability/otel_init.py:110
+  undeclared opentelemetry-exporter-prometheus (lazy): lmcache/v1/mp_observability/otel_init.py:135
+  undeclared opentelemetry-sdk (guarded, lazy, typing): lmcache/logging.py:87
+  undeclared starlette (top): lmcache/security/http.py:8
+  undeclared torch-br (guarded): lmcache/v1/platform/devices/supa/__init__.py:82
+  undeclared torch-mlu (guarded): lmcache/v1/platform/devices/mlu/__init__.py:55
+  undeclared torch-musa (guarded): lmcache/v1/platform/devices/musa/device_ops.py:368
+  undeclared torch-xla (guarded): lmcache/v1/platform/devices/neuron/__init__.py:114
+  undeclared transformers (lazy): lmcache/integration/tensorrt_llm/tensorrt_mp_adapter.py:331
+  engines: sglang, tensorrt-llm, vllm
+  declared, never imported: cryptography
+shipped, imported by no other module: 26
+  lmcache/cli/__init__.py
+  lmcache/cli/metrics/__init__.py
+  lmcache/integration/atom/__init__.py
+  lmcache/integration/request_telemetry/fastapi.py
+  lmcache/integration/request_telemetry/noop.py
+  lmcache/integration/sglang/unified_lmcache_mp_connector.py
+  lmcache/integration/tensorrt_llm/__init__.py
+  lmcache/integration/tensorrt_llm/tensorrt_adapter.py
+  lmcache/integration/vllm/experimental/token_drop.py
+  lmcache/integration/vllm/experimental/token_drop_adapter.py
+  lmcache/integration/vllm/experimental/token_drop_kv.py
+  lmcache/integration/vllm/lmcache_mp_connector.py
+  lmcache/v1/common/token_hasher.py
+  lmcache/v1/common/transfer_channel/__init__.py
+  lmcache/v1/common/transfer_channel/api.py
+  lmcache/v1/multiprocess/group_view.py
+  lmcache/v1/platform/devices/hpu/__init__.py
+  lmcache/v1/platform/devices/mlu/__init__.py
+  lmcache/v1/platform/devices/npu/__init__.py
+  lmcache/v1/platform/devices/rocm/__init__.py
+  lmcache/v1/platform/devices/supa/__init__.py
+  lmcache/v1/platform/devices/xpu/__init__.py
+  lmcache/v1/platform/stream.py
+  lmcache/v1/transport/grpc/protos/__init__.py
+  lmcache/v1/transport/server_module.py
+  lmcache/v1/utils/frozen_dict.py
+FAIL server file: lmcache/v1/distributed/api.py  <- lmcache/v1/client/transfer_context/base.py:37 (top)
+FAIL server file: lmcache/v1/multiprocess/object_group_transfer.py  <- lmcache/v1/client/transfer_context/base.py:654 (lazy)
+FAIL server file: lmcache/v1/multiprocess/transport/base.py  <- lmcache/integration/atom/multi_process_adapter.py:31 (top)
+FAIL server file: lmcache/v1/multiprocess/transport/zmq_impl/mq.py  <- lmcache/v1/client/transport/zmq_impl/mq_client.py:22 (top)

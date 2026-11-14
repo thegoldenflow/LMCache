@@ -1,0 +1,11 @@
+--- manifest.toml
++++ no-init.toml
+@@ -269,3 +269,8 @@
+ "for cupy.testing under torch._dynamo; not yet checked for the [cuda] extra" = [
+     "pytest",
+ ]
++
++[[exclude]]
++owner = "adversarial-review"
++reason = "counterexample"
++paths = ["lmcache/v1/common/__init__.py"]

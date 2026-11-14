@@ -1,0 +1,6 @@
+common.proto: File not found.
+/tmp/lmcache-client-gf3tw6j9/lmcache/v1/transport/grpc/protos/blend_service.proto:9:1: Import "common.proto" was not found or had errors.
+    raise RuntimeError(f"grpc_tools.protoc failed with exit code {result}")
+RuntimeError: grpc_tools.protoc failed with exit code 1
+TIP pass --env-dir and --sdist-extract-dir to keep the build environment and sources, then see https://build.pypa.io/en/stable/how-to/troubleshooting.html#debug-a-failed-build for help debugging a failed build
+python -m build failed in the staging root
