@@ -1,0 +1,394 @@
+diff --git a/.github/workflows/build_client_artifacts.yml b/.github/workflows/build_client_artifacts.yml
+index 36b4be78..8e270767 100644
+--- a/.github/workflows/build_client_artifacts.yml
++++ b/.github/workflows/build_client_artifacts.yml
+@@ -101,13 +101,23 @@ jobs:
+                 diff -u "$RUNNER_TEMP/before.txt" "$RUNNER_TEMP/after.txt"
+ 
+             - name: Audit both wheels and the transitional imports
++              # Requirement differences without a reason (exit 3) are fatal only on PRs
++              # that edit tools/client_wheel/, like the ratchet below.
++              env:
++                BASE_SHA: ${{ github.event.pull_request.base.sha }}
+               run: |
++                status=0
+                 for mode in strict transitional; do
+                   python tools/client_wheel/audit.py "$RUNNER_TEMP"/client-$mode/*.whl \
+-                    --staging "$RUNNER_TEMP/client-$mode/STAGING_MANIFEST.json" --boundary $mode
++                    --staging "$RUNNER_TEMP/client-$mode/STAGING_MANIFEST.json" --boundary $mode \
++                    --requirements || status=$?
++                  [ "$status" = 0 ] || [ "$status" = 3 ] || exit "$status"
+                 done
+                 python tools/client_wheel/check_imports.py --boundary transitional \
+                   --wheel "$RUNNER_TEMP"/client-transitional/*.whl
++                [ "$status" = 0 ] && exit 0
++                echo "::warning::give each requirement difference a reason in tools/client_wheel/manifest.toml"
++                [ -z "$BASE_SHA" ] || git diff --quiet "$BASE_SHA" HEAD -- tools/client_wheel/
+ 
+             - name: Strict failures must equal the transitional list
+               # Fatal only on PRs that edit tools/client_wheel/, so a stale entry
+diff --git a/tools/client_wheel/README.md b/tools/client_wheel/README.md
+index 2597fcdc..ddcd2f06 100644
+--- a/tools/client_wheel/README.md
++++ b/tools/client_wheel/README.md
+@@ -8,7 +8,7 @@ is not touched. CI runs everything below in `build_client_artifacts.yml`.
+ | --- | --- |
+ | `manifest.toml` | What the wheel ships, what it keeps out, and the gaps the checks accept |
+ | `scope.py` | Reads the manifest; every other script selects files through it |
+-| `pyproject.toml`, `setup.py` | Static metadata and build glue, copied into the staging root |
++| `pyproject.toml`, `setup.py` | Static metadata and build glue for the staging root; `build.py` adds the root `[build-system]` |
+ | `build.py` | Stages the files and builds the wheel |
+ | `audit.py` | Checks the wheel's files, METADATA, entry points, native libraries and compat shims |
+ | `check_imports.py` | Static import closure, and per-module imports and smokes in a clean venv (`--runtime`) |
+@@ -33,6 +33,11 @@ static check with `not shipped`; a dependency left behind fails it with
+ fails the clean-venv import. Removing `lmcache/integration/vllm/` also means
+ removing the `client-vllm-cpu` job, which otherwise exits with `nothing to import`.
+ 
++**Changing a requirement.** A requirement that differs from the full wheel's
++(`requirements/common.txt` + `cuda13_core.txt`) needs a reason in
++`[full_wheel_differences]`, and a reason needs a difference. The audit step
++fails on PRs that edit `tools/client_wheel/` and warns on the others.
++
+ **Keeping a shared file out.** Add an `[[exclude]]` entry with `owner`, `reason`
+ and `paths`; it wins over `trees` and `files`. A client module that still
+ imports the file fails the static check with `excluded, not in boundary_gaps
+@@ -45,8 +50,9 @@ and drop its files from `[[transitional]]`.
+ 
+ The static check cannot see modules loaded by name. `scanned` covers the two
+ known scanned packages; `platform/_device_detect.py`,
+-`platform/base/ipc_wrapper.py` and `transport/grpc/descriptors.py` also load
+-modules by name and are not covered.
++`platform/base/ipc_wrapper.py`, `transport/grpc/descriptors.py` and
++`integration/request_telemetry/factory.py` also load modules by name and are
++not covered.
+ 
+ ## Server files the client still needs
+ 
+diff --git a/tools/client_wheel/audit.py b/tools/client_wheel/audit.py
+index 8d3a58ff..4d122110 100644
+--- a/tools/client_wheel/audit.py
++++ b/tools/client_wheel/audit.py
+@@ -3,12 +3,15 @@
+ 
+     python tools/client_wheel/audit.py WHEEL --staging STAGING_MANIFEST.json
+         [--boundary strict|transitional] [--version V] [--manifest M]
+-
+-Fails on unexpected, missing, server or excluded files, staged files the wheel
+-dropped, compat shims that do more than re-export, native extensions outside
+-native_allow, METADATA that differs from pyproject.toml, entry points, and a
+-staging record built from another manifest. Also prints how the requirements
+-differ from the full wheel's, with the reasons manifest.toml records.
++        [--requirements]
++
++Fails on paths outside lmcache/ and the dist-info, unexpected, missing, server
++or excluded files, staged files the wheel dropped, compat shims that do more
++than re-export, native extensions outside native_allow, METADATA that differs
++from pyproject.toml, entry points, and a staging record built from another
++manifest. Also prints how the requirements differ from the full wheel's, with
++the reasons manifest.toml records; with --requirements it exits 3 when a
++difference has no reason, or a reason no difference, and nothing else fails.
+ """
+ 
+ # Standard
+@@ -159,9 +162,9 @@ def by_name(specs: list[str]) -> dict[str, list[str]]:
+     return found
+ 
+ 
+-def full_wheel_differences(scope: Scope) -> list[str]:
++def full_wheel_differences(scope: Scope) -> tuple[list[str], int]:
+     """Requirements that differ from the full CUDA 13 wheel, each with the reason
+-    manifest.toml records for it; reported, not enforced."""
++    manifest.toml records for it, and how many lack a reason or match nothing."""
+     reasons = dict(scope.manifest.get("full_wheel_differences", {}))
+     for why, names in reasons.pop("omitted", {}).items():
+         reasons.update(dict.fromkeys(names, why))
+@@ -176,13 +179,15 @@ def full_wheel_differences(scope: Scope) -> list[str]:
+             for line in (REPO / "requirements" / name).read_text().splitlines()
+         ]
+     )
+-    lines = []
++    lines, unmatched = [], 0
+     for name in sorted(full.keys() | client.keys()):
+         if full.get(name) != client.get(name):
++            unmatched += name not in reasons
+             why = reasons.pop(name, "NO REASON RECORDED")
+             lines.append(f"  {name}: full {full.get(name)}, client {client.get(name)}")
+             lines.append(f"    {why}")
+-    return lines + [f"  {name}: listed, but no longer differs" for name in reasons]
++    stale = [f"  {name}: listed, but no longer differs" for name in reasons]
++    return lines + stale, unmatched + len(stale)
+ 
+ 
+ def main() -> None:
+@@ -196,6 +201,7 @@ def main() -> None:
+     )
+     parser.add_argument("--version", help="defaults to the staging record's")
+     parser.add_argument("--manifest", type=Path, default=HERE / "manifest.toml")
++    parser.add_argument("--requirements", action="store_true")
+     args = parser.parse_args()
+ 
+     scope = load_scope(args.manifest)
+@@ -203,6 +209,11 @@ def main() -> None:
+     staging = json.loads(args.staging.read_text())
+     staged = {path for path in staging["files"] if path.startswith("lmcache/")}
+     info, contents, errors = wheel_contents(args.wheel)
++    errors += [
++        f"files: outside lmcache/: {path}"
++        for path in contents
++        if not path.startswith(("lmcache/", f"{info}/"))
++    ]
+     if staging["manifest"] != hashlib.sha256(args.manifest.read_bytes()).hexdigest():
+         errors.append(f"scope: the staging record was not built from {args.manifest}")
+     errors += check_files(contents, staged, scope, args.boundary)
+@@ -219,12 +230,12 @@ def main() -> None:
+ 
+     shipped = sum(path.startswith("lmcache/") for path in contents)
+     print(f"{args.wheel.name}: {shipped} package files, {args.boundary} boundary")
+-    differences = full_wheel_differences(scope)
++    differences, unmatched = full_wheel_differences(scope)
+     print("requirements that differ from the full wheel:", *differences, sep="\n")
+     for error in sorted(errors):
+         print(f"FAIL {error}")
+     print(f"{len(errors)} failure(s)")
+-    sys.exit(1 if errors else 0)
++    sys.exit(1 if errors else 3 if args.requirements and unmatched else 0)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/tools/client_wheel/build.py b/tools/client_wheel/build.py
+index aabedc29..c9341f1b 100644
+--- a/tools/client_wheel/build.py
++++ b/tools/client_wheel/build.py
+@@ -6,8 +6,9 @@
+         [--keep-staging]
+ 
+ Copies the tracked files of REV that manifest.toml selects (see scope.py) into
+-a new temporary directory, adds this directory's pyproject.toml and setup.py,
+-builds the wheel there and fails if the checkout changed in the meantime.
++a new temporary directory, adds setup.py and this directory's pyproject.toml
++under the root [build-system], builds the wheel there and fails if the
++checkout changed in the meantime.
+ """
+ 
+ # Standard
+@@ -96,6 +97,11 @@ def select(scope: Scope, entries: dict, boundary: str) -> tuple[list, list]:
+         for path in shims + transitional
+         if not matches(path, manifest["deny"] + excluded)
+     ]
++    errors += [
++        f"compat shim in [[exclude]], remove it from [[compat_shims]] instead: {path}"
++        for path in shims
++        if scope.excluded(path)
++    ]
+     allowed = scope.allowed(boundary)
+     package = [
+         p for p in entries if p.startswith("lmcache/") and scope.selects(p, boundary)
+@@ -115,17 +121,18 @@ def select(scope: Scope, entries: dict, boundary: str) -> tuple[list, list]:
+     return sorted(package), sorted(inputs)
+ 
+ 
+-def check_build_system(rev: str, no_isolation: bool) -> None:
++def build_system(rev: str, no_isolation: bool) -> str:
++    """The root [build-system] as TOML; sync_torch_version.yml keeps only it current."""
+     root = tomllib.loads(git("show", f"{rev}:pyproject.toml").decode())
+-    client = tomllib.loads((HERE / "pyproject.toml").read_text())
+-    if client["build-system"] != root["build-system"]:
+-        raise SystemExit("[build-system] differs from the root pyproject.toml")
++    table = root["build-system"]
++    if set(table) != {"requires", "build-backend"}:
++        raise SystemExit(f"unexpected [build-system] keys: {sorted(table)}")
+     if no_isolation:
+         # Third Party
+         from packaging.requirements import Requirement
+ 
+         # lmcache_native links against the torch of the build environment.
+-        pins = [Requirement(r) for r in root["build-system"]["requires"]]
++        pins = [Requirement(r) for r in table["requires"]]
+         torch_pin = next(r for r in pins if r.name == "torch")
+         try:
+             found = importlib.metadata.version("torch")
+@@ -133,6 +140,9 @@ def check_build_system(rev: str, no_isolation: bool) -> None:
+             found = "missing"
+         if not torch_pin.specifier.contains(found, prereleases=True):
+             raise SystemExit(f"--no-isolation needs {torch_pin}, found torch {found}")
++    requires = "".join(f"    {json.dumps(r)},\n" for r in table["requires"])
++    backend = json.dumps(table["build-backend"])
++    return f"[build-system]\nrequires = [\n{requires}]\nbuild-backend = {backend}\n\n"
+ 
+ 
+ def resolve_version(rev: str, version: str | None) -> str:
+@@ -201,14 +211,15 @@ def main() -> None:
+     scope = load_scope(args.manifest)
+     entries = tracked(rev)
+     package, inputs = select(scope, entries, args.boundary)
+-    check_build_system(rev, args.no_isolation)
++    build_toml = build_system(rev, args.no_isolation)
+     version = resolve_version(rev, args.version)
+ 
+     staging = Path(tempfile.mkdtemp(prefix="lmcache-client-"))
+     try:
+         files = stage(entries, package + inputs, staging)
+-        for name in ("pyproject.toml", "setup.py"):
+-            shutil.copy2(HERE / name, staging / name)
++        client = (HERE / "pyproject.toml").read_text()
++        (staging / "pyproject.toml").write_text(build_toml + client)
++        shutil.copy2(HERE / "setup.py", staging / "setup.py")
+         groups = (
+             scope.manifest.get("transitional", [])
+             if args.boundary == "transitional"
+diff --git a/tools/client_wheel/check_e2e.py b/tools/client_wheel/check_e2e.py
+index 856d5efd..8d4fdc09 100644
+--- a/tools/client_wheel/check_e2e.py
++++ b/tools/client_wheel/check_e2e.py
+@@ -20,6 +20,7 @@ its ports.
+ from pathlib import Path
+ import argparse
+ import json
++import os
+ import socket
+ import subprocess
+ import sys
+@@ -203,8 +204,13 @@ def run(transport: str, server_python: Path, client_python: Path, logs: Path) ->
+     report: dict = {"transport": transport}
+     log = logs / f"server-{transport}.log"
+     with tempfile.TemporaryDirectory() as cwd, open(log, "w") as out:
++        # The server reports usage to stats.lmcache.ai unless told not to.
+         server = subprocess.Popen(
+-            command, cwd=cwd, stdout=out, stderr=subprocess.STDOUT
++            command,
++            cwd=cwd,
++            env=dict(os.environ, LMCACHE_TRACK_USAGE="false"),
++            stdout=out,
++            stderr=subprocess.STDOUT,
+         )
+         try:
+             wait_healthy(f"http://127.0.0.1:{http}/healthcheck", server, 120)
+@@ -275,10 +281,9 @@ def main() -> None:
+ 
+     logs = args.logs or Path(tempfile.mkdtemp(prefix="e2e-"))
+     logs.mkdir(parents=True, exist_ok=True)
+-    reports = [
+-        run(transport, args.server_python, args.client_python, logs)
+-        for transport in args.transport
+-    ]
++    server = Path(os.path.abspath(args.server_python))
++    client = Path(os.path.abspath(args.client_python))
++    reports = [run(transport, server, client, logs) for transport in args.transport]
+     failed = False
+     for report in reports:
+         problems = failures(report)
+diff --git a/tools/client_wheel/check_imports.py b/tools/client_wheel/check_imports.py
+index 98e1384e..4470f4b3 100644
+--- a/tools/client_wheel/check_imports.py
++++ b/tools/client_wheel/check_imports.py
+@@ -220,6 +220,12 @@ def walk(
+         package = f"{base}/__init__.py"
+         return package if (root / package).is_file() else f"{base}.py"
+ 
++    def dropped(module: str) -> bool:
++        """An [[exclude]] file of the checkout: a submodule, not an attribute."""
++        path = path_of(module)
++        excluded = module not in python and scope.excluded(path)
++        return bool(excluded) and (root / path).is_file()
++
+     def optional(module: str) -> bool:
+         if module in native or (checkout and GENERATED.match(path_of(module))):
+             return True
+@@ -263,7 +269,8 @@ def walk(
+             exported = {n for _, more, _, _ in imports.get(target, []) for n in more}
+             subs = [f"{target}.{n}" for n in names if f"{target}.{n}" in python]
+             subs += [f"{target}.{n}" for n in names if shim and n not in exported]
+-            for dst in subs or [target]:
++            hidden = [f"{target}.{n}" for n in names if dropped(f"{target}.{n}")]
++            for dst in (subs or [target]) + hidden:
+                 imported.update(m for m in [*parents(dst), dst] if m != module)
+                 dst_path = path_of(dst)
+                 group = scope.excluded(dst_path)
+diff --git a/tools/client_wheel/check_install.py b/tools/client_wheel/check_install.py
+index 896de93c..4094ed53 100644
+--- a/tools/client_wheel/check_install.py
++++ b/tools/client_wheel/check_install.py
+@@ -24,6 +24,8 @@ from pathlib import Path
+ import argparse
+ import csv
+ import json
++import os
++import shutil
+ import subprocess
+ import sys
+ import tempfile
+@@ -168,7 +170,8 @@ def main() -> None:
+     args = parser.parse_args()
+ 
+     if args.check == "matrix":
+-        errors = matrix(args.python, args.client, args.full, args.cli)
++        python = os.path.abspath(shutil.which(args.python) or args.python)
++        errors = matrix(python, args.client, args.full, args.cli)
+     elif args.check == "superset":
+         errors = superset(args.client, args.full)
+     else:
+diff --git a/tools/client_wheel/manifest.toml b/tools/client_wheel/manifest.toml
+index 1d79f03f..c71c5d17 100644
+--- a/tools/client_wheel/manifest.toml
++++ b/tools/client_wheel/manifest.toml
+@@ -245,7 +245,9 @@ paths = [
+ ]
+ 
+ # Why the client's requirements differ from the full CUDA wheel's
+-# (requirements/common.txt + cuda13_core.txt); audit.py prints them.
++# (requirements/common.txt + cuda13_core.txt). A difference without a reason here,
++# or a reason without a difference, fails CI on PRs that edit tools/client_wheel/
++# and warns on the others (audit.py --requirements exits 3).
+ [full_wheel_differences]
+ cuda-python = "[cuda] extra on Linux, so the CPU client wheel pulls no CUDA packages"
+ cupy-cuda13x = "[cuda] extra on Linux, so the CPU client wheel pulls no CUDA packages"
+diff --git a/tools/client_wheel/pyproject.toml b/tools/client_wheel/pyproject.toml
+index 15028f0c..64d31719 100644
+--- a/tools/client_wheel/pyproject.toml
++++ b/tools/client_wheel/pyproject.toml
+@@ -1,19 +1,5 @@
+-# Metadata for the lmcache-client wheel. build.py copies this file into a
+-# staging root; the root pyproject.toml keeps building the full lmcache wheel.
+-
+-[build-system]
+-# Must equal the root [build-system]; build.py fails otherwise.
+-requires = [
+-    "ninja",
+-    "packaging>=24.2",
+-    "setuptools>=77.0.3,<81.0.0",
+-    "setuptools_scm>=8",
+-    "grpcio==1.78.0",
+-    "grpcio-tools==1.78.0",
+-    "torch==2.14.0",
+-    "wheel",
+-]
+-build-backend = "setuptools.build_meta"
++# Metadata for the lmcache-client wheel. build.py stages it under the root
++# pyproject.toml's [build-system], which keeps building the full lmcache wheel.
+ 
+ [project]
+ name = "lmcache-client"
+diff --git a/tools/client_wheel/scope.py b/tools/client_wheel/scope.py
+index 9108524d..12339a3d 100755
+--- a/tools/client_wheel/scope.py
++++ b/tools/client_wheel/scope.py
+@@ -103,12 +103,17 @@ def validate(scope: Scope) -> list[str]:
+         for scanned in scope.manifest.get("scanned", [])
+         if path != scanned and path.startswith(scanned)
+     ]
++    errors += [
++        f"boundary_gaps: {edge}: a top-level import cannot be a gap; "
++        "change the import or do not exclude the file"
++        for edge in scope.manifest.get("boundary_gaps", [])
++        if edge.split()[1:2] == ["top"]
++    ]
+     return errors
+ 
+ 
+ def load_scope(path: Path | None = None) -> Scope:
+-    """Read manifest.toml; exit on an unknown key or a partly excluded scanned
+-    package."""
++    """Read manifest.toml; exit on what validate rejects."""
+     path = path or HERE / "manifest.toml"
+     scope = Scope(tomllib.loads(path.read_text()), path)
+     errors = validate(scope)

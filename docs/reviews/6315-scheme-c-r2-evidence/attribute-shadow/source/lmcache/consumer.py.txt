@@ -1,0 +1,2 @@
+from lmcache.pkg import feature
+assert feature == 123

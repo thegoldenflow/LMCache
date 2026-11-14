@@ -1,0 +1,9 @@
+trees = ["lmcache/"]
+files = []
+deny = []
+native_allow = []
+engines = []
+[[exclude]]
+owner = "r2-review"
+reason = "exclude optional submodule, keep scalar attribute"
+paths = ["lmcache/pkg/feature.py"]

@@ -1,0 +1,19 @@
+--- manifest.toml
++++ top-gap.toml
+@@ -97,6 +97,7 @@
+ # Imports of [[exclude]] files that client modules may keep, as "source kind
+ # target". These are #6310's: move create_cache_context or record a waiver.
+ boundary_gaps = [
++    "lmcache/__init__.py top lmcache/logging.py",
+     "lmcache/v1/platform/base/device_spec.py typing lmcache/v1/platform/base/cache_context.py",
+     "lmcache/v1/platform/devices/cpu/__init__.py typing lmcache/v1/platform/base/cache_context.py",
+     "lmcache/v1/platform/devices/cpu/__init__.py lazy lmcache/v1/platform/devices/cpu/cache_context.py",
+@@ -271,3 +272,8 @@
+ "for cupy.testing under torch._dynamo; not yet checked for the [cuda] extra" = [
+     "pytest",
+ ]
++
++[[exclude]]
++owner = "r2-review"
++reason = "counterexample"
++paths = ["lmcache/logging.py"]

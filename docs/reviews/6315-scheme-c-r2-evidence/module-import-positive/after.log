@@ -1,0 +1,10 @@
+3 modules, strict
+boundary_gaps: 1
+  lmcache/consumer.py:1 (top) -> lmcache/pkg/feature.py
+transitional files reached: 0/0
+third-party imports:
+  engines: 
+  declared, never imported: blake3, cachetools, cryptography, cuda-python, cupy-cuda13x, grpcio, msgspec, numba, numpy, nvtx, opentelemetry-api, prometheus-client, protobuf, pyyaml, pyzmq, requests, sortedcontainers, torch, typing-extensions
+shipped, imported by no other module: 1
+  lmcache/consumer.py
+FAIL excluded, not in boundary_gaps (r2-review: exclude optional submodule, keep scalar attribute): lmcache/pkg/feature.py  <- lmcache/consumer.py:1 (top)

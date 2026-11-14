@@ -1,0 +1,65 @@
+lmcache_client-0.0.0.dev0-cp312-cp312-linux_x86_64.whl: 339 package files, transitional boundary
+requirements that differ from the full wheel:
+  aiofile: full ['aiofile'], client None
+    not imported by the client wheel
+  aiofiles: full ['aiofiles'], client None
+    not imported by the client wheel
+  aiohttp: full ['aiohttp'], client None
+    not imported by the client wheel
+  awscrt: full ['awscrt'], client None
+    not imported by the client wheel
+  cuda-python: full ['cuda-python<14,>=13'], client ['cuda-python<14,>=13; sys_platform == "linux"']
+    [cuda] extra on Linux, so the CPU client wheel pulls no CUDA packages
+  cufile-python: full ['cufile-python'], client None
+    not imported by the client wheel
+  cupy-cuda13x: full ['cupy-cuda13x'], client ['cupy-cuda13x; sys_platform == "linux"']
+    [cuda] extra on Linux, so the CPU client wheel pulls no CUDA packages
+  fastapi: full ['fastapi'], client None
+    not imported by the client wheel
+  google-api-core: full ['google-api-core'], client None
+    not imported by the client wheel
+  google-cloud-bigtable: full ['google-cloud-bigtable'], client None
+    not imported by the client wheel
+  grpcio-observability: full ['grpcio-observability==1.78.0; platform_system == "Linux"'], client None
+    optional: imported only lazily or under an import guard
+  httptools: full ['httptools'], client None
+    not imported by the client wheel
+  httpx: full ['httpx'], client None
+    not imported by the client wheel
+  huggingface-hub: full ['huggingface_hub>=1.5.0'], client None
+    not imported by the client wheel
+  numpy: full ['numpy<=2.2.6; python_version < "3.14"', 'numpy; python_version >= "3.14"'], client ['numpy']
+    no <=2.2.6 cap: it is for nixl's numba, and nixl stays on the server
+  opentelemetry-api: full ['opentelemetry-api<=1.40.0,>=1.20.0'], client ['opentelemetry-api>=1.20.0']
+    no <=1.40.0 cap: it cannot co-install with vLLM main (>=1.45.1)
+  opentelemetry-exporter-otlp: full ['opentelemetry-exporter-otlp>=1.20.0'], client None
+    optional: imported only lazily or under an import guard
+  opentelemetry-exporter-prometheus: full ['opentelemetry-exporter-prometheus<=0.61b0,>=0.50b0'], client None
+    optional: imported only lazily or under an import guard
+  opentelemetry-sdk: full ['opentelemetry-sdk>=1.20.0'], client None
+    optional: imported only lazily or under an import guard
+  prometheus-client: full ['prometheus_client<=0.24.1,>=0.18.0'], client ['prometheus_client>=0.18.0']
+    no <=0.24.1 cap: it came with the otel cap in a test hotfix (#3000)
+  psutil: full ['psutil'], client None
+    not imported by the client wheel
+  py-cpuinfo: full ['py-cpuinfo'], client None
+    not imported by the client wheel
+  pytest: full ['pytest'], client None
+    for cupy.testing under torch._dynamo; not yet checked for the [cuda] extra
+  redis: full ['redis'], client None
+    not imported by the client wheel
+  requests: full None, client ['requests']
+    lmcache/sdk/context.py imports it; the full wheel gets it transitively
+  safetensors: full ['safetensors'], client None
+    not imported by the client wheel
+  setuptools: full ['setuptools<81.0.0,>=77.0.3'], client None
+    not imported by the client wheel
+  setuptools-scm: full ['setuptools_scm>=8'], client None
+    not imported by the client wheel
+  transformers: full ['transformers>=5.4'], client None
+    optional: imported only lazily or under an import guard
+  typing-extensions: full None, client ['typing_extensions']
+    lmcache/security/api_key.py imports it; the full wheel gets it from torch
+  uvicorn: full ['uvicorn'], client None
+    not imported by the client wheel
+0 failure(s)

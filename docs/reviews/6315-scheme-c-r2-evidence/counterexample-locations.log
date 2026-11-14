@@ -1,0 +1,6 @@
+tools/client_wheel/manifest.toml:160:paths = ["lmcache/v1/multiprocess/custom_types.py"]
+tools/client_wheel/README.md:72:| `custom_types.py`, from `[[transitional]]` to `[[compat_shims]]` (#6541) | manifest | the superset step's `grep custom_types.py` fails |
+.github/workflows/build_client_artifacts.yml:209:                  python tools/client_wheel/check_install.py superset \
+.github/workflows/build_client_artifacts.yml:212:                if python tools/client_wheel/check_install.py superset "$RUNNER_TEMP"/client-transitional/*.whl \
+.github/workflows/build_client_artifacts.yml:213:                    "$RUNNER_TEMP"/client-strict/*.whl > "$RUNNER_TEMP/superset.txt"; then exit 1; fi
+.github/workflows/build_client_artifacts.yml:214:                grep "not in the full wheel: lmcache/v1/multiprocess/custom_types.py" "$RUNNER_TEMP/superset.txt"

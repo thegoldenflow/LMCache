@@ -1,0 +1,20 @@
+[
+  {
+    "case": "default",
+    "package_files": 339,
+    "excluded_path": "lmcache/v1/platform/base/cache_context.py",
+    "shipped": true
+  },
+  {
+    "case": "exclude-transitional",
+    "package_files": 339,
+    "excluded_path": "lmcache/v1/distributed/serde/aesgcm.py",
+    "shipped": true
+  },
+  {
+    "case": "exclude-generated",
+    "package_files": 339,
+    "excluded_path": "lmcache/v1/transport/grpc/_proto_gen/common_pb2.pyi",
+    "shipped": true
+  }
+]

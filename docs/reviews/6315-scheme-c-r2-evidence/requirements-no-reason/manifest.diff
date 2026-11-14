@@ -1,0 +1,10 @@
+--- manifest.toml
++++ requirements-no-reason.toml
+@@ -254,7 +254,6 @@
+ numpy = "no <=2.2.6 cap: it is for nixl's numba, and nixl stays on the server"
+ opentelemetry-api = "no <=1.40.0 cap: it cannot co-install with vLLM main (>=1.45.1)"
+ prometheus-client = "no <=0.24.1 cap: it came with the otel cap in a test hotfix (#3000)"
+-requests = "lmcache/sdk/context.py imports it; the full wheel gets it transitively"
+ typing-extensions = "lmcache/security/api_key.py imports it; the full wheel gets it from torch"
+ 
+ [full_wheel_differences.omitted]

@@ -1,0 +1,12 @@
+{
+  "before": {
+    "exit": 0,
+    "errors": []
+  },
+  "after": {
+    "exit": 1,
+    "errors": [
+      "FAIL excluded, not in boundary_gaps (r2-review: exclude optional submodule, keep scalar attribute): lmcache/pkg/feature.py  <- lmcache/consumer.py:1 (top)"
+    ]
+  }
+}

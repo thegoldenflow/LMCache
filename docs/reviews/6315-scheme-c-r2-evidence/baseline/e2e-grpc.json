@@ -1,0 +1,24 @@
+[
+  {
+    "transport": "grpc",
+    "chunk_size": 256,
+    "tokens": 512,
+    "cold_hit_tokens": 0,
+    "stored": true,
+    "warm_hit_tokens": 512,
+    "warm_lookups": 1,
+    "retrieved": true,
+    "bytes_match": true,
+    "distribution": "lmcache-client 0.0.0.dev0",
+    "lmcache_modules": 161,
+    "outside_client_venv": [],
+    "server_modules": [
+      "lmcache.v1.distributed.api",
+      "lmcache.v1.multiprocess.transport",
+      "lmcache.v1.multiprocess.transport.base"
+    ],
+    "server_exit": -15,
+    "server_stopped": true,
+    "ports_released": true
+  }
+]

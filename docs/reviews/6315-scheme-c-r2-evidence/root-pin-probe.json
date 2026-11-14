@@ -1,0 +1,5 @@
+{
+  "root_pin": "torch==2.15.0",
+  "staged_pin_copied": true,
+  "client_metadata_has_build_system": false
+}

@@ -1,0 +1,9 @@
+[
+  {
+    "transport": "zmq",
+    "error": "the server exited with -6",
+    "server_exit": -6,
+    "server_stopped": true,
+    "ports_released": true
+  }
+]

@@ -1,0 +1,2 @@
+manifest.toml:
+  compat shim in [[exclude]], remove it from [[compat_shims]] instead: lmcache/v1/multiprocess/group_view.py

@@ -1,0 +1,18 @@
+--- manifest.toml
++++ json-data.toml
+@@ -17,6 +17,7 @@
+ 
+ # Shared helpers outside the boundary packages, the SDK and the integrations.
+ files = [
++    "lmcache/lmcache_frontend/config.json",
+     "lmcache/__init__.py",
+     "lmcache/banner.py",
+     "lmcache/lmcache_native.pyi",
+@@ -57,7 +58,6 @@
+ deny = [
+     "lmcache/cli/commands/",
+     "lmcache/cli/main.py",
+-    "lmcache/lmcache_frontend/",
+     "lmcache/v1/distributed/",
+     "lmcache/v1/gpu_connector/",
+     "lmcache/v1/memory_allocators/",

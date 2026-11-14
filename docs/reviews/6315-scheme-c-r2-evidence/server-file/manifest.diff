@@ -1,0 +1,10 @@
+--- manifest.toml
++++ server-file.toml
+@@ -17,6 +17,7 @@
+ 
+ # Shared helpers outside the boundary packages, the SDK and the integrations.
+ files = [
++    "lmcache/v1/multiprocess/server.py",
+     "lmcache/__init__.py",
+     "lmcache/banner.py",
+     "lmcache/lmcache_native.pyi",

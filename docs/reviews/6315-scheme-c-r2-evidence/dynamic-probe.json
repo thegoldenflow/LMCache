@@ -1,0 +1,12 @@
+[
+  {
+    "wheel": "baseline/transitional",
+    "exit": 0,
+    "output": "CPU_SPEC CpuDeviceSpec\n"
+  },
+  {
+    "wheel": "exclude-device-cpu/dist",
+    "exit": 0,
+    "output": "CPU_SPEC None\n"
+  }
+]
