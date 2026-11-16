@@ -202,7 +202,7 @@ Python 3.12 的 PEP 669 有全局的 RAISE 事件，表面上能做到“任何�
 
 ## 8. 验证
 
-环境：WSL Ubuntu，`~/pr6237-subpr/venv-test`（Python 3.12.3），`PYTHONPATH=<worktree>`，`python -B`，`PYTHONDONTWRITEBYTECODE=1`。
+环境：本地 WSL Ubuntu 上的一个 venv（Python 3.12.3，没有 pip 安装 lmcache），`PYTHONPATH=<worktree>`，`python -B`，`PYTHONDONTWRITEBYTECODE=1`。下面提到的实验脚本、基准脚本和排查记录都在本地，没有放进这个分支。
 
 ### 8.1 测试
 
@@ -214,7 +214,7 @@ Python 3.12 的 PEP 669 有全局的 RAISE 事件，表面上能做到“任何�
 | `tests/v1/multiprocess/test_mq.py` 整个文件 | 33 passed, 2 skipped | 34 passed, 2 skipped（多出来的是新测试） |
 | `tests/v1/distributed/serde`（`CorruptEncodedKVError` 的使用方） | — | 79 passed, 15 skipped |
 
-过程中出过两次失败，都查清了，细节在 `6307\docs\debugging-casebook.md`：
+过程中出过两次失败，都查清了（完整排查过程记在本地的调试案例集里）：
 
 - `tests/v1/mp_observability` 第一次跑是 4 failed：`test_otel_init.py` 的 stub 里手写了一份指标订阅者名单，漏了新加的 `ErrorMetricsSubscriber`。这是本分支引入的问题，已经补上。
 - `test_mq.py` 第一次跑时 `test_mq_noop_request` 和 `test_mq_noop_multiple_clients` 失败（`Client 0: timeout`）。这两个测试会起独立的服务端和客户端进程，服务端要在 5 秒内就绪。那一轮同时在跑基准测试，机器负载高。单独跑这两个测试，head 和本分支各两次，都通过；再在空闲时各跑一遍整个文件，结果就是上表。
@@ -234,7 +234,7 @@ Python 3.12 的 PEP 669 有全局的 RAISE 事件，表面上能做到“任何�
 
 ### 8.3 用审计时的实验脚本对比 head 和本分支
 
-审计 #6509 时写过一个服务端流程的实验脚本（`exp.py`：导入 `lmcache.v1.multiprocess.server`，替换 `EventBus.publish` 来记录事件）。在本分支上原样重跑，只把最后读观察者的那一行指向新模块。26 个比较项里：
+审计 #6509 时写过一个服务端流程的实验脚本（`exp.py`，不在本分支：导入 `lmcache.v1.multiprocess.server`，替换 `EventBus.publish` 来记录事件）。在本分支上原样重跑，只把最后读观察者的那一行指向新模块。26 个比较项里：
 
 - **23 项完全相同**：注册前构造不发布；初始化后发 1 个、发到当前的 bus；连续初始化 3 次后仍然只发 1 个；子类覆盖 `__str__`、非字符串参数；`futures.py:130` 这个真实抛出点的消息；发布失败和 `get_event_bus` 失败都被吞掉；`format_stack` 失败和开关函数失败都从 `__init__` 抛出；关闭时 0 次发布、0 次取栈；`init_event_bus(None)` 会发布。
 - **2 项只是脚本文件名不同**（`exp.py` 和 `exp_branch.py`）：`2_event`、`5_stack_tail`。把文件名统一以后逐字相同。
