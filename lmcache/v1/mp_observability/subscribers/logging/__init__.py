@@ -3,6 +3,9 @@
 from lmcache.v1.mp_observability.subscribers.logging.cb_server import (
     BlendLoggingSubscriber,
 )
+from lmcache.v1.mp_observability.subscribers.logging.error import (
+    ErrorLoggingSubscriber,
+)
 from lmcache.v1.mp_observability.subscribers.logging.extra_stats import (
     ExtraStatsLoggingSubscriber,
 )
@@ -21,6 +24,7 @@ from lmcache.v1.mp_observability.subscribers.logging.timeout import (
 
 __all__ = [
     "BlendLoggingSubscriber",
+    "ErrorLoggingSubscriber",
     "ExtraStatsLoggingSubscriber",
     "L1LoggingSubscriber",
     "L2LoggingSubscriber",

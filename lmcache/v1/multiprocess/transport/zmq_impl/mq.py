@@ -16,6 +16,7 @@ import zmq
 from lmcache.logging import init_logger
 from lmcache.security.api_key import APIKeyVerifier
 from lmcache.v1.common.memory_layout import MemoryLayoutDesc
+from lmcache.v1.common.observable_error import report_error
 from lmcache.v1.multiprocess.affinity_pool import AffinityThreadPool
 from lmcache.v1.multiprocess.custom_types import (
     DeviceIPCWrapper,
@@ -293,8 +294,9 @@ class MessageQueueServer(RequestServer):
                     self._output_efd.notify()
             except StopIteration:
                 pass
-            except Exception:
+            except Exception as exc:
                 logger.exception("Error in ZMQ event stream")
+                report_error(exc)
             finally:
                 stream.close()
                 if not self.is_finished.is_set():
@@ -341,6 +343,7 @@ class MessageQueueServer(RequestServer):
             except Exception as exc:
                 operation = decode_operation(prefix_frames[2])
                 logger.exception("Error in blocking handler %s", operation)
+                report_error(exc)
                 error_code = (
                     "invalid_argument"
                     if isinstance(exc, ValueError)
@@ -419,8 +422,9 @@ class MessageQueueServer(RequestServer):
                     payloads=payloads,
                     prefix_frames=[identity, b_request_uid, b_operation],
                 )
-            except Exception:
+            except Exception as exc:
                 logger.exception("Error handling operation %s", operation)
+                report_error(exc)
         else:
             message = (
                 f"Operation {operation!r} is not enabled on this server. "

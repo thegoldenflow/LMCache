@@ -7,6 +7,9 @@ from lmcache.v1.mp_observability.subscribers.metrics.cb_server import (
 from lmcache.v1.mp_observability.subscribers.metrics.engine import (
     EngineMetricsSubscriber,
 )
+from lmcache.v1.mp_observability.subscribers.metrics.error import (
+    ErrorMetricsSubscriber,
+)
 from lmcache.v1.mp_observability.subscribers.metrics.event_bus import (
     EventBusSelfMetricsSubscriber,
 )
@@ -52,6 +55,7 @@ from lmcache.v1.mp_observability.subscribers.metrics.timeout import (
 __all__ = [
     "BlendMetricsSubscriber",
     "EngineMetricsSubscriber",
+    "ErrorMetricsSubscriber",
     "EventBusSelfMetricsSubscriber",
     "L0L1ThroughputSubscriber",
     "L0LifecycleSubscriber",

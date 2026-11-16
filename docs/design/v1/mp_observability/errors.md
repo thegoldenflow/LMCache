@@ -28,7 +28,7 @@ beyond the class swap.
   type, so `except asyncio.TimeoutError` catches it too; on 3.10 it does not —
   do not rely on the async alias for catching these raises.)
 - **Emits on construction, not on raise.** Once `init_event_bus()` has
-  registered `publish_timeout` from `errors.py`, `__init__` publishes one
+  registered `publish_error` from `errors.py`, `__init__` publishes one
   `EventType.TIMEOUT_RAISED` event (see [EVENTS.md](EVENTS.md)) to the global
   EventBus via `get_event_bus()`.
 - **Zero-cost when observability is off.** The emit path is guarded by
@@ -46,8 +46,8 @@ beyond the class swap.
 ## What gets recorded
 
 The emitted `TIMEOUT_RAISED` event carries `message`, `exception_type`, and a
-captured `stacktrace` (the construction stack minus the `__init__` frame,
-following the OTel `exception.*` semantic conventions). Three subscribers
+captured `stacktrace` (the construction stack, ending at the frame that
+constructed the error, following the OTel `exception.*` semantic conventions). Three subscribers
 consume it, registered by `init_observability` under the usual
 metrics/logging/tracing toggles:
 
@@ -66,6 +66,20 @@ available.
 ## Extending
 
 To make another timeout observable, raise `LMCacheTimeoutError` instead of the
-built-in. To add a new observable error family, define a sibling subclass of
-the relevant built-in here, add a matching `EventType`, and add subscriber(s)
-that consume it — mirroring the timeout wiring.
+built-in. Other errors have two entry points in
+`lmcache/v1/common/observable_error.py`, which imports nothing from MP
+observability and is safe on the client:
+
+- **`ObservableError`** — derive an LMCache error class from it (next to its
+  builtin base, e.g. `class CorruptEncodedKVError(ObservableError, CodecError)`)
+  and every construction publishes `ERROR_RAISED` with `source="constructed"`.
+  Opt in only classes whose every construction is worth counting: the stack
+  capture costs far more than constructing a plain exception.
+- **`report_error(exc, session_id=...)`** — call it where an exception of any
+  type, including builtin and third-party ones, is caught. It publishes
+  `ERROR_RAISED` with `source="caught"` and the exception's own traceback, never
+  raises, and skips exceptions that were already reported.
+
+`ErrorMetricsSubscriber` counts both (`lmcache_mp.errors`, tagged
+`exception_type` and `source`); `ErrorLoggingSubscriber` logs only constructed
+errors, since catch sites already log what they catch.

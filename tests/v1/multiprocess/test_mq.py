@@ -24,6 +24,7 @@ from lmcache.v1.client.transport.zmq_impl.mq_client import (
     RECONNECT_IVL_MAX_MS,
     MessageQueueClient,
 )
+from lmcache.v1.common import observable_error
 from lmcache.v1.common.transfer_channel.api import TransferChannelAddress
 from lmcache.v1.distributed.api import MemoryLayoutDesc, ObjectKey, get_request_tags
 from lmcache.v1.multiprocess.config import MPServerConfig
@@ -867,6 +868,44 @@ def test_unregistered_operation_returns_remote_error() -> None:
     finally:
         client.close()
         server.close()
+
+
+def test_blocking_handler_error_is_reported(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A failing handler's exception reaches the error observer as caught."""
+    reported: list[tuple[BaseException, bool]] = []
+    monkeypatch.setattr(
+        observable_error,
+        "_observer",
+        lambda error, session_id, caught: reported.append((error, caught)),
+    )
+
+    def failing_lookup(key: IPCCacheServerKey, tp_size: int) -> None:
+        del key, tp_size
+        raise RuntimeError("lookup exploded")
+
+    server_url = f"tcp://127.0.0.1:{_unused_tcp_port()}"
+    context = zmq.Context.instance()
+    server = MessageQueueServer(server_url, context)
+    server.add_handler("lookup", HandlerType.BLOCKING, failing_lookup)
+    server.add_normal_thread_pool(["lookup"], max_workers=1)
+    server.start()
+
+    client = MessageQueueClient(server_url, context)
+    try:
+        key = IPCCacheServerKey.from_token_ids("model", 1, None, [1, 2])
+        future: MessagingFuture[None] | MessagingStream[None] = client.submit_request(
+            "lookup", [key, 1]
+        )
+        assert isinstance(future, MessagingFuture)
+        with pytest.raises(MPRequestError, match="handler_error.*lookup exploded"):
+            future.result(timeout=1)
+    finally:
+        client.close()
+        server.close()
+
+    assert [
+        caught for error, caught in reported if str(error) == "lookup exploded"
+    ] == [True]
 
 
 def test_blocking_handler_value_error_returns_remote_error() -> None:

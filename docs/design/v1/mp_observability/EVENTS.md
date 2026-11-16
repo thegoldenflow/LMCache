@@ -149,7 +149,7 @@ needed when that happens.
 
 ## Timeout Events
 
-Cross-component health event. Published by `publish_timeout`
+Cross-component health event. Published by `publish_error`
 (`lmcache/v1/mp_observability/errors.py`), which `init_event_bus()` registers
 as the `LMCacheTimeoutError` observer, every time the exception is
 constructed, gated by `is_observability_enabled()` so it is a no-op outside
@@ -164,12 +164,29 @@ empty otherwise.
 - `message` — the exception's message string (`str(exc)`).
 - `exception_type` — the class name (`LMCacheTimeoutError` or a subclass).
 - `stacktrace` — the formatted construction stack (`traceback.format_stack()`
-  minus the `__init__` frame), surfaced as the OTel `exception.stacktrace`
-  attribute by the tracing subscriber.
+  ending at the frame that constructed the error), surfaced as the OTel
+  `exception.stacktrace` attribute by the tracing subscriber.
 
 Consumed by `TimeoutMetricsSubscriber` (counter), `TimeoutLoggingSubscriber`
 (warning log), and `TimeoutTracingSubscriber` (OTel span with an `exception`
 event + ERROR status).
+
+## Error Events
+
+Published by `publish_error` for each new `ObservableError` that is not a
+timeout, and for each exception passed to `report_error` at a catch site. Each
+exception object is published at most once.
+
+| EventType | Metadata keys | Types |
+|---|---|---|
+| `ERROR_RAISED` | `message`, `exception_type`, `stacktrace`, `source` | `str`, `str`, `str`, `str` |
+
+- `source` — `constructed` (from `ObservableError.__init__`; `stacktrace` is the
+  construction stack) or `caught` (from `report_error`; `stacktrace` is
+  `traceback.format_exception(exc)`, from the raise site to the catch site).
+
+Consumed by `ErrorMetricsSubscriber` (counter) and `ErrorLoggingSubscriber`
+(warning log, constructed errors only).
 
 ---
 

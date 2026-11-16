@@ -16,7 +16,7 @@ import time
 
 # First Party
 from lmcache.logging import init_logger
-from lmcache.v1.common.timeouts import register_timeout_observer
+from lmcache.v1.common.observable_error import register_error_observer
 from lmcache.v1.mp_observability.event import Event, EventType
 from lmcache.v1.mp_observability.otel_init import register_gauge
 
@@ -416,18 +416,18 @@ def get_event_bus() -> EventBus:
 def init_event_bus(config: EventBusConfig | None = None) -> EventBus:
     """Replace the global singleton with a new EventBus built from *config*.
 
-    Also registers the ``TIMEOUT_RAISED`` publisher as the
-    ``LMCacheTimeoutError`` observer, so an enabled bus reports timeouts raised
-    by modules that never import MP observability.
+    Also registers ``errors.publish_error`` as the error observer, so an
+    enabled bus reports errors raised or caught by modules that never import MP
+    observability.
 
     Returns the newly created bus.
     """
     global _global_bus, _observability_enabled
     # errors imports this module, so import it at call time.
     # First Party
-    from lmcache.v1.mp_observability.errors import publish_timeout
+    from lmcache.v1.mp_observability.errors import publish_error
 
-    register_timeout_observer(publish_timeout)
+    register_error_observer(publish_error)
     _global_bus = EventBus(config)
     _observability_enabled = config.enabled if config else True
     return _global_bus

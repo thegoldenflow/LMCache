@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
-"""Tests for LMCacheTimeoutError (observability-aware timeout error).
+"""Tests for observable errors and their MP observability events.
 
-Verifies that the class is a drop-in ``TimeoutError`` subclass, is a no-op
-when observability is disabled, and otherwise publishes a ``TIMEOUT_RAISED``
-event to the global EventBus carrying the message, exception type, and a
-captured stack trace.
+``LMCacheTimeoutError`` stays a drop-in ``TimeoutError`` that publishes
+``TIMEOUT_RAISED``; other ``ObservableError`` subclasses and exceptions passed
+to ``report_error`` publish ``ERROR_RAISED``.
 """
 
 # Standard
@@ -18,6 +17,8 @@ import time
 import pytest
 
 # First Party
+from lmcache.v1.common import observable_error
+from lmcache.v1.common.observable_error import ObservableError, report_error
 from lmcache.v1.common.timeouts import LMCacheTimeoutError
 from lmcache.v1.mp_observability.event import Event, EventType
 from lmcache.v1.mp_observability.event_bus import (
@@ -114,13 +115,116 @@ class TestLMCacheTimeoutErrorEmission:
             raise LMCacheTimeoutError("still a timeout")
 
 
-def test_timeout_error_does_not_load_mp_observability() -> None:
+class _PlainError(ObservableError):
+    pass
+
+
+class _ErrorWithInit(ObservableError, RuntimeError):
+    def __init__(self, key: str) -> None:
+        super().__init__(f"bad {key}")
+        self.key = key
+
+
+def _fail_lookup() -> None:
+    {}["missing"]
+
+
+def _collect(action, *event_types: EventType) -> list[Event]:
+    bus = init_event_bus(EventBusConfig(enabled=True, max_queue_size=100))
+    captured: list[Event] = []
+    for event_type in event_types:
+        bus.subscribe(event_type, captured.append)
+    bus.start()
+    action()
+    time.sleep(_DRAIN_WAIT)
+    bus.stop()
+    return captured
+
+
+def _last_frame(stacktrace: str) -> str:
+    return [ln for ln in stacktrace.splitlines() if ln.lstrip().startswith("File ")][
+        -1
+    ]
+
+
+class TestObservableErrorEmission:
+    def test_non_timeout_error_publishes_error_raised(self) -> None:
+        events = _collect(
+            lambda: _PlainError("bad", session_id="req-1"),
+            EventType.ERROR_RAISED,
+            EventType.TIMEOUT_RAISED,
+        )
+
+        assert len(events) == 1
+        event = events[0]
+        assert event.event_type == EventType.ERROR_RAISED
+        assert event.session_id == "req-1"
+        assert event.metadata["message"] == "bad"
+        assert event.metadata["exception_type"] == "_PlainError"
+        assert event.metadata["source"] == "constructed"
+
+    def test_stack_ends_where_the_error_is_constructed(self) -> None:
+        def construct_here() -> None:
+            _ErrorWithInit("k")
+
+        events = _collect(construct_here, EventType.ERROR_RAISED)
+
+        assert "in construct_here" in _last_frame(events[0].metadata["stacktrace"])
+
+    def test_timeout_keeps_its_own_event_and_metadata(self) -> None:
+        events = _collect(
+            lambda: LMCacheTimeoutError("t"),
+            EventType.ERROR_RAISED,
+            EventType.TIMEOUT_RAISED,
+        )
+
+        assert [event.event_type for event in events] == [EventType.TIMEOUT_RAISED]
+        assert set(events[0].metadata) == {"message", "exception_type", "stacktrace"}
+
+
+class TestReportError:
+    def test_caught_error_publishes_its_traceback(self) -> None:
+        def catch() -> None:
+            try:
+                _fail_lookup()
+            except KeyError as exc:
+                report_error(exc, session_id="req-2")
+
+        events = _collect(catch, EventType.ERROR_RAISED)
+
+        assert len(events) == 1
+        event = events[0]
+        assert event.session_id == "req-2"
+        assert event.metadata["exception_type"] == "KeyError"
+        assert event.metadata["source"] == "caught"
+        assert "in _fail_lookup" in _last_frame(event.metadata["stacktrace"])
+
+    def test_each_error_is_reported_once(self) -> None:
+        def construct_then_catch_twice() -> None:
+            error = _PlainError("once")
+            report_error(error)
+            report_error(error)
+
+        events = _collect(construct_then_catch_twice, EventType.ERROR_RAISED)
+
+        assert [event.metadata["source"] for event in events] == ["constructed"]
+
+    def test_never_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(
+            observable_error, "_observer", Mock(side_effect=RuntimeError("broken"))
+        )
+        report_error(ValueError("x"))
+
+
+def test_common_errors_do_not_load_mp_observability() -> None:
     script = r"""
 import sys
 
+from lmcache.v1.common.observable_error import report_error
 from lmcache.v1.common.timeouts import LMCacheTimeoutError
 
 LMCacheTimeoutError("t")
+report_error(ValueError("v"))
 loaded = [m for m in sys.modules if m.startswith("lmcache.v1.mp_observability")]
 assert loaded == [], loaded
 """

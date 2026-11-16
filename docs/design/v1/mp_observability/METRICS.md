@@ -154,6 +154,14 @@ the timeout rate per class.
 Should stay near zero in healthy operation; a rising rate signals an
 overloaded or stuck MQ/transfer/adapter path.
 
+| OTel metric name | Prometheus name | Type | Source event | Calculation | Tags |
+|---|---|---|---|---|---|
+| `lmcache_mp.errors` | `lmcache_mp_errors_total` | Counter | `ERROR_RAISED` | `+1` per event | `exception_type`, `source` |
+
+**What it answers:** which non-timeout errors occur, and whether they were
+constructed by an opted-in LMCache error class or caught at a request-handler
+boundary.
+
 ---
 
 ## L1 Chunk Lifecycle Histograms

@@ -195,6 +195,7 @@ def _stub_metrics_subscriber_modules(monkeypatch):
     for name in [
         "BlendMetricsSubscriber",
         "EngineMetricsSubscriber",
+        "ErrorMetricsSubscriber",
         "EventBusSelfMetricsSubscriber",
         "L0L1ThroughputSubscriber",
         "L0LifecycleSubscriber",

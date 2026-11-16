@@ -6,34 +6,12 @@ Raise :class:`LMCacheTimeoutError` instead of the builtin ``TimeoutError``. The
 ``ban-raw-timeout-error`` pre-commit hook enforces this across ``lmcache/``.
 """
 
-# Future
-from __future__ import annotations
-
-# Standard
-from collections.abc import Callable
-
-_observer: Callable[[LMCacheTimeoutError, str], None] | None = None
+# First Party
+from lmcache.v1.common.observable_error import ObservableError
 
 
-def register_timeout_observer(
-    observer: Callable[[LMCacheTimeoutError, str], None],
-) -> None:
-    """Set the callback that every new ``LMCacheTimeoutError`` is passed to.
-
-    MP observability's ``init_event_bus`` registers its ``TIMEOUT_RAISED``
-    publisher here. An exception from the observer propagates out of
-    ``LMCacheTimeoutError.__init__``.
-
-    Args:
-        observer: Called with the new error and its session id; replaces any
-            previously registered observer.
-    """
-    global _observer
-    _observer = observer
-
-
-class LMCacheTimeoutError(TimeoutError):
-    """``TimeoutError`` that is passed to the registered observer on construction.
+class LMCacheTimeoutError(ObservableError, TimeoutError):
+    """``TimeoutError`` that is passed to the error observer on construction.
 
     Subclasses the builtin, so existing ``except TimeoutError`` handlers still
     catch it.
@@ -45,6 +23,4 @@ class LMCacheTimeoutError(TimeoutError):
     """
 
     def __init__(self, message: str, *, session_id: str = "") -> None:
-        super().__init__(message)
-        if _observer is not None:
-            _observer(self, session_id)
+        super().__init__(message, session_id=session_id)

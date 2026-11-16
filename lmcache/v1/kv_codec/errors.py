@@ -7,6 +7,9 @@ names the observed-vs-expected condition; do not raise bare
 RuntimeError or KeyError.
 """
 
+# First Party
+from lmcache.v1.common.observable_error import ObservableError
+
 
 class CodecError(Exception):
     """Base class for all KV codec errors."""
@@ -22,7 +25,7 @@ class CodecMismatchError(CodecError):
     """
 
 
-class CorruptEncodedKVError(CodecError):
+class CorruptEncodedKVError(ObservableError, CodecError):
     """The encoded blob's header or payload failed an integrity
     check.
 

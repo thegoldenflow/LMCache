@@ -480,6 +480,7 @@ def init_observability(
         from lmcache.v1.mp_observability.subscribers.metrics import (
             BlendMetricsSubscriber,
             EngineMetricsSubscriber,
+            ErrorMetricsSubscriber,
             EventBusSelfMetricsSubscriber,
             L0L1ThroughputSubscriber,
             L0LifecycleSubscriber,
@@ -514,12 +515,14 @@ def init_observability(
         bus.register_subscriber(EngineMetricsSubscriber())
         bus.register_subscriber(EventBusSelfMetricsSubscriber(bus))
         bus.register_subscriber(TimeoutMetricsSubscriber())
+        bus.register_subscriber(ErrorMetricsSubscriber())
         bus.register_subscriber(TransferPhaseMetricsSubscriber())
 
     if obs_config.logging_enabled:
         # First Party
         from lmcache.v1.mp_observability.subscribers.logging import (
             BlendLoggingSubscriber,
+            ErrorLoggingSubscriber,
             L1LoggingSubscriber,
             L2LoggingSubscriber,
             MPServerLoggingSubscriber,
@@ -533,6 +536,7 @@ def init_observability(
         bus.register_subscriber(SMLoggingSubscriber())
         bus.register_subscriber(BlendLoggingSubscriber())
         bus.register_subscriber(TimeoutLoggingSubscriber())
+        bus.register_subscriber(ErrorLoggingSubscriber())
 
     if obs_config.tracing_enabled:
         # First Party
