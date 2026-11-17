@@ -111,6 +111,10 @@ class EventType(Enum):
     # to the OTel exception.stacktrace span attribute).
     TIMEOUT_RAISED = "timeout.raised"
 
+    # Published by report_error at a failure boundary (see
+    # operation_failures.py). Metadata: operation, exception_type, message (all str).
+    OPERATION_FAILED = "operation.failed"
+
     # Trace recording — unified function-call entry event used by the
     # ``@enable_tracing`` decorator.  Metadata layout:
     #   ``qualname`` (str):   fully-qualified function name

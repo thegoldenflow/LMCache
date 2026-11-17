@@ -15,6 +15,7 @@ import zmq
 # First Party
 from lmcache.logging import init_logger
 from lmcache.security.api_key import APIKeyVerifier
+from lmcache.v1.common.error_reporting import report_error
 from lmcache.v1.multiprocess.affinity_pool import AffinityThreadPool
 from lmcache.v1.multiprocess.custom_types import (
     get_customized_decoder,
@@ -273,6 +274,7 @@ class MessageQueueServer(RequestServer):
         stream.add_close_callback(credit.set)
 
         def forward() -> None:
+            error: Exception | None = None
             try:
                 while not self.is_finished.is_set():
                     credit.wait()
@@ -284,13 +286,16 @@ class MessageQueueServer(RequestServer):
                     self._output_efd.notify()
             except StopIteration:
                 pass
-            except Exception:
+            except Exception as exc:
                 logger.exception("Error in ZMQ event stream")
+                error = exc
             finally:
                 stream.close()
                 if not self.is_finished.is_set():
                     self.output_queue.put(prefix)
                     self._output_efd.notify()
+            if error is not None:
+                report_error(error, operation=decode_operation(prefix[2]))
 
         thread = threading.Thread(target=forward, daemon=True, name="zmq-event-stream")
         self.streams[(prefix[0], prefix[1])] = (stream, credit, thread)
@@ -351,6 +356,7 @@ class MessageQueueServer(RequestServer):
                     ]
                 )
                 self._output_efd.notify()
+                report_error(exc, operation=operation)
 
         future.add_done_callback(_notify_response)
 
@@ -410,8 +416,9 @@ class MessageQueueServer(RequestServer):
                     payloads=payloads,
                     prefix_frames=[identity, b_request_uid, b_operation],
                 )
-            except Exception:
+            except Exception as exc:
                 logger.exception("Error handling operation %s", operation)
+                report_error(exc, operation=operation)
         else:
             message = (
                 f"Operation {operation!r} is not enabled on this server. "

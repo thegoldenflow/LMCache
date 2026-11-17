@@ -114,13 +114,16 @@ class TestLMCacheTimeoutErrorEmission:
             raise LMCacheTimeoutError("still a timeout")
 
 
-def test_timeout_error_does_not_load_mp_observability() -> None:
+def test_timeout_report_error_and_zmq_client_load_no_mp_observability() -> None:
     script = r"""
 import sys
 
+from lmcache.v1.common.error_reporting import report_error
 from lmcache.v1.common.timeouts import LMCacheTimeoutError
+import lmcache.v1.client.transport.zmq_impl.mq_client
 
 LMCacheTimeoutError("t")
+report_error(ValueError("bad key"), operation="lookup")
 loaded = [m for m in sys.modules if m.startswith("lmcache.v1.mp_observability")]
 assert loaded == [], loaded
 """

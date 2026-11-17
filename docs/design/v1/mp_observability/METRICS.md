@@ -156,6 +156,22 @@ overloaded or stuck MQ/transfer/adapter path.
 
 ---
 
+## Operation Failure Metrics
+
+Incremented once per operation that a failure boundary reports through
+`report_error` (the `OPERATION_FAILED` event in [EVENTS.md](EVENTS.md));
+today only the ZMQ server's handlers report.
+
+| OTel metric name | Prometheus name | Type | Source event | Calculation | Tags |
+|---|---|---|---|---|---|
+| `lmcache_mp.operation_failures` | `lmcache_mp_operation_failures_total` | Counter | `OPERATION_FAILED` | `+1` per event | `operation`, `exception_type` |
+
+**What it answers:** which operations fail, and with which exception? A
+timeout that fails an operation is counted here and in `lmcache_mp.timeouts`,
+so the two counters must not be summed.
+
+---
+
 ## L1 Chunk Lifecycle Histograms
 
 Sampled (default 1%) chunk-level lifecycle tracking.  Only sampled chunks

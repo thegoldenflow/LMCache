@@ -27,9 +27,11 @@ from lmcache.v1.client.transport.zmq_impl.mq_client import (
     PeerCheck,
     put_stream_error,
 )
+from lmcache.v1.common import error_reporting
 from lmcache.v1.common.custom_types import (
     BlockAllocationRecord,
     IPCCacheServerKey,
+    KVEventBatch,
 )
 from lmcache.v1.distributed.api import get_request_tags
 from lmcache.v1.multiprocess.config import MPServerConfig
@@ -878,6 +880,122 @@ def test_blocking_handler_value_error_returns_remote_error() -> None:
         )
         assert isinstance(healthy, MessagingFuture)
         assert healthy.result(timeout=1) is None
+    finally:
+        client.close()
+        server.close()
+
+
+class _HeldReporter:
+    """Records each reported failure, then blocks until released."""
+
+    def __init__(self) -> None:
+        self.reports: list[tuple[BaseException, str]] = []
+        self.called = threading.Event()
+        self.release = threading.Event()
+
+    def __call__(self, error: BaseException, operation: str, session_id: str) -> None:
+        self.reports.append((error, operation))
+        self.called.set()
+        self.release.wait(timeout=5)
+
+
+@pytest.fixture
+def held_reporter(monkeypatch: pytest.MonkeyPatch):
+    reporter = _HeldReporter()
+    monkeypatch.setattr(error_reporting, "_reporter", reporter)
+    yield reporter
+    reporter.release.set()
+
+
+def _serve(
+    operation: str, handler_type: HandlerType, handler: Callable
+) -> tuple[MessageQueueServer, MessageQueueClient]:
+    server_url = f"tcp://127.0.0.1:{_unused_tcp_port()}"
+    context = zmq.Context.instance()
+    server = MessageQueueServer(server_url, context)
+    server.add_handler(operation, handler_type, handler)
+    if handler_type == HandlerType.BLOCKING:
+        server.add_normal_thread_pool([operation], max_workers=1)
+    server.start()
+    return server, MessageQueueClient(server_url, context)
+
+
+def test_blocking_handler_error_is_reported_after_the_error_response(
+    held_reporter: _HeldReporter,
+) -> None:
+    error = RuntimeError("lookup exploded")
+
+    def failing_lookup(key: IPCCacheServerKey, tp_size: int) -> None:
+        # Fail after the done callback is attached, so it runs on the pool
+        # thread and a held reporter cannot stall the server loop.
+        time.sleep(0.2)
+        raise error
+
+    server, client = _serve("lookup", HandlerType.BLOCKING, failing_lookup)
+    try:
+        key = IPCCacheServerKey.from_token_ids("model", 1, None, [1, 2])
+        future: MessagingFuture[None] | MessagingStream[None] = client.submit_request(
+            "lookup", [key, 1]
+        )
+        assert isinstance(future, MessagingFuture)
+        with pytest.raises(MPRequestError, match="handler_error.*lookup exploded"):
+            future.result(timeout=2)
+        assert held_reporter.called.wait(timeout=2)
+        assert held_reporter.reports == [(error, "lookup")]
+    finally:
+        held_reporter.release.set()
+        client.close()
+        server.close()
+
+
+def test_stream_error_is_reported_after_the_stream_ends(
+    held_reporter: _HeldReporter,
+) -> None:
+    error = RuntimeError("stream exploded")
+
+    def read(closed: threading.Event) -> Any:
+        raise error
+
+    def subscribe(
+        instance_id: int, model_name: str, cursor: int, max_events: int
+    ) -> MessagingStream[KVEventBatch]:
+        return MessagingStream(read, lambda: None)
+
+    server, client = _serve("subscribe_kv_events", HandlerType.SERIALIZED, subscribe)
+    try:
+        stream: MessagingFuture[KVEventBatch] | MessagingStream[KVEventBatch] = (
+            client.submit_request("subscribe_kv_events", [1, "model", 0, 8])
+        )
+        assert isinstance(stream, MessagingStream)
+        ended = threading.Event()
+
+        def drain() -> None:
+            for _ in stream:
+                pass
+            ended.set()
+
+        threading.Thread(target=drain, daemon=True).start()
+        assert ended.wait(timeout=2)
+        assert held_reporter.called.wait(timeout=2)
+        assert held_reporter.reports == [(error, "subscribe_kv_events")]
+    finally:
+        held_reporter.release.set()
+        client.close()
+        server.close()
+
+
+def test_serialized_handler_error_is_reported(held_reporter: _HeldReporter) -> None:
+    held_reporter.release.set()
+    error = RuntimeError("noop exploded")
+
+    def failing_noop() -> str:
+        raise error
+
+    server, client = _serve("noop", HandlerType.SERIALIZED, failing_noop)
+    try:
+        client.submit_request("noop", [])
+        assert held_reporter.called.wait(timeout=2)
+        assert held_reporter.reports == [(error, "noop")]
     finally:
         client.close()
         server.close()

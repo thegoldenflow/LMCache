@@ -492,6 +492,7 @@ def init_observability(
             L2ThroughputSubscriber,
             LookupMetricsSubscriber,
             MPTransferCountersSubscriber,
+            OperationFailureMetricsSubscriber,
             SMLifecycleSubscriber,
             TimeoutMetricsSubscriber,
             TransferPhaseMetricsSubscriber,
@@ -514,6 +515,7 @@ def init_observability(
         bus.register_subscriber(EngineMetricsSubscriber())
         bus.register_subscriber(EventBusSelfMetricsSubscriber(bus))
         bus.register_subscriber(TimeoutMetricsSubscriber())
+        bus.register_subscriber(OperationFailureMetricsSubscriber())
         bus.register_subscriber(TransferPhaseMetricsSubscriber())
 
     if obs_config.logging_enabled:

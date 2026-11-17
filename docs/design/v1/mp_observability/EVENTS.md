@@ -173,6 +173,33 @@ event + ERROR status).
 
 ---
 
+## Operation Failure Events
+
+Published by `publish_operation_failure`
+(`lmcache/v1/mp_observability/operation_failures.py`), which `init_event_bus()`
+registers as the reporter behind `lmcache.v1.common.error_reporting.report_error`.
+A failure boundary calls `report_error` once per failed operation, after it
+has queued its error response or closed its stream. The ZMQ server reports
+from its blocking, serialized and stream handlers; no other boundary reports
+yet. `session_id` is empty there.
+
+| EventType | Metadata keys | Types |
+|---|---|---|
+| `OPERATION_FAILED` | `operation`, `exception_type`, `message` | `str`, `str`, `str` |
+
+- `operation` — the failed operation, e.g. the RPC name.
+- `exception_type` — the class name of the caught exception, of any type.
+- `message` — `str(exc)`.
+
+Consumed by `OperationFailureMetricsSubscriber` (counter). The boundaries
+already log the exception with its traceback, so the event carries no
+traceback and there is no logging subscriber. A timeout that
+fails an operation produces both a `TIMEOUT_RAISED` (at construction) and an
+`OPERATION_FAILED` (at the boundary); they are not deduplicated, and their
+counts are not to be added up as incidents.
+
+---
+
 ## MP Server Lifecycle Sentinels
 
 CPU-synchronous sentinels published by `server.py` to bracket request scope.
