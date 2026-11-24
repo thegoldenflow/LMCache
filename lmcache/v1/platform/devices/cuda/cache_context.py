@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 # First Party
 from lmcache import torch_dev
-from lmcache.utils import EngineType
+from lmcache.v1.common.custom_types import EngineType
 from lmcache.v1.common.group_view import (
     EngineGroupInfo,
     engine_group_layer_indices,

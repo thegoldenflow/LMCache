@@ -13,7 +13,7 @@ import torch
 
 # First Party
 from lmcache import torch_dev
-from lmcache.utils import EngineType
+from lmcache.v1.common.custom_types import EngineType
 from lmcache.v1.common.group_view import engine_group_layer_indices
 from lmcache.v1.common.kv_format import get_spec_class
 from lmcache.v1.common.kv_format.types import DiscoverableKVCache
